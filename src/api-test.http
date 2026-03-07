@@ -1,0 +1,33 @@
+### 1. Ürün: Java Ders Kitabı Ekliyoruz
+POST http://localhost:8080/api/products
+Content-Type: application/json
+
+{
+  "title": "Java Programlama 101 - Temiz Kullanılmış",
+  "description": "Geçen dönem kullandım, içinde çok az fosforlu kalemle çizik var.",
+  "price": 250.00,
+  "category": "KİTAP",
+  "categoryDetails": {
+    "yazar": "Ahmet Yılmaz",
+    "sayfaSayisi": 450,
+    "dersKodu": "CS101"
+  }
+}
+
+###
+
+### 2. Ürün: İkinci El Monitör Ekliyoruz
+POST http://localhost:8080/api/products
+Content-Type: application/json
+
+{
+  "title": "24 İnç Samsung Monitör",
+  "description": "Yazılım kodlarken çift ekran yapmak için harika. Çiziği yok.",
+  "price": 1200.00,
+  "category": "ELEKTRONİK",
+  "categoryDetails": {
+    "marka": "Samsung",
+    "garantiAy": 6,
+    "cozunurluk": "1080p"
+  }
+}
