@@ -23,6 +23,10 @@ public class User {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    // 🚀 YENİ EKLENEN KISIM: KULLANICININ SON GÖRÜLME ZAMANI
+    @Column(name = "last_active")
+    private LocalDateTime lastActive;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
@@ -44,6 +48,10 @@ public class User {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    // 🚀 YENİ EKLENEN GETTER VE SETTER'LAR
+    public LocalDateTime getLastActive() { return lastActive; }
+    public void setLastActive(LocalDateTime lastActive) { this.lastActive = lastActive; }
 
     // Boş Constructor (Hibernate için şart)
     public User() {}
