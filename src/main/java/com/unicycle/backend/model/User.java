@@ -23,16 +23,23 @@ public class User {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    // 🚀 YENİ EKLENEN KISIM: KULLANICININ SON GÖRÜLME ZAMANI
+    // KULLANICININ SON GÖRÜLME ZAMANI
     @Column(name = "last_active")
     private LocalDateTime lastActive;
+
+    // 🟢 ÇEVRİMİÇİ DURUMU (Tertemiz, tek parça ve büyük 'B' ile!)
+    @Column(name = "is_online")
+    private Boolean isOnline = false;
+
+    // Boş Constructor (Hibernate için şart)
+    public User() {}
 
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
     }
 
-    // --- MANUEL GETTER VE SETTER'LAR (Hataları Bitirecek Kısım) ---
+    // --- MANUEL GETTER VE SETTER'LAR ---
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -49,10 +56,9 @@ public class User {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    // 🚀 YENİ EKLENEN GETTER VE SETTER'LAR
     public LocalDateTime getLastActive() { return lastActive; }
     public void setLastActive(LocalDateTime lastActive) { this.lastActive = lastActive; }
 
-    // Boş Constructor (Hibernate için şart)
-    public User() {}
+    public Boolean getIsOnline() { return isOnline; }
+    public void setOnline(Boolean online) { this.isOnline = online; }
 }
