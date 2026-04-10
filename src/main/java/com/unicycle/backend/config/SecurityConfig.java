@@ -20,7 +20,7 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // 1. CORS'u aç (Next.js'in 3000 portundan gelmesine izin ver)
+                // 1. CORS'u aç (Artık hem localhost hem Vercel girebilir)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 // 2. CSRF korumasını kapat (Yoksa POST işlemlerini engeller)
                 .csrf(csrf -> csrf.disable())
@@ -41,8 +41,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Sadece bizim Next.js uygulamamızın içeri girmesine izin veriyoruz
-        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000"));
+
+        // 🔥 İŞTE BÖLÜM SONU CANAVARINI YENDİĞİMİZ YER! 🔥
+        // Hem senin bilgisayarına hem de Vercel'deki canlı siteye izin verdik.
+        configuration.setAllowedOrigins(Arrays.asList(
+                "http://localhost:3000",
+                "https://uni-cycle-seven.vercel.app"
+        ));
+
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("*"));
         configuration.setAllowCredentials(true);
