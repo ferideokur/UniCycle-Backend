@@ -1,5 +1,7 @@
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
+# Sistem dilini UTF-8 yapıyoruz ki karakter hatası vermesin
+ENV LANG=C.UTF-8
 COPY . .
 RUN mvn clean package -DskipTests
 
