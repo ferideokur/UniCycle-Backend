@@ -13,7 +13,8 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/products")
-@CrossOrigin(origins = "http://localhost:3000")
+// Vercel Linkimiz İçeri Alındı!
+@CrossOrigin(origins = "https://uni-cycle-seven.vercel.app")
 public class ProductController {
 
     private final ProductRepository productRepository;
