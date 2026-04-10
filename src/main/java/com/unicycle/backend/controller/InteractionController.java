@@ -16,7 +16,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/interaction")
-@CrossOrigin(origins = "http://localhost:3000") // Next.js'ten gelen isteklere izin veriyoruz!
+@CrossOrigin(origins = "https://uni-cycle-seven.vercel.app") // Vercel'den gelen isteklere izin veriyoruz!
 public class InteractionController {
 
     @Autowired
@@ -66,7 +66,6 @@ public class InteractionController {
         List<Notification> notifications = notificationRepository.findByUserOrderByCreatedAtDesc(user);
         return ResponseEntity.ok(notifications);
     }
-    // InteractionController.java dosyasının içine, diğer @PostMapping'lerin yanına ekle:
 
     @PostMapping("/notifications")
     public ResponseEntity<?> createCustomNotification(@RequestBody Map<String, Object> payload) {

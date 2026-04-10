@@ -13,7 +13,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/products")
-// Vercel Linkimiz İçeri Alındı!
+// VERCEL VIP BİLETİ ZATEN BURADAYDI!
 @CrossOrigin(origins = "https://uni-cycle-seven.vercel.app")
 public class ProductController {
 

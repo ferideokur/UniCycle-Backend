@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/messages")
-@CrossOrigin(origins = "http://localhost:3000") // React'a izin veriyoruz
+@CrossOrigin(origins = "https://uni-cycle-seven.vercel.app") // Vercel'e izin veriyoruz
 public class MessageController {
 
     @Autowired
