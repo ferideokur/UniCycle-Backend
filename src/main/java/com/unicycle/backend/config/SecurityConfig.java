@@ -8,10 +8,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
-import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.util.Arrays;
+import org.springframework.web.filter.CorsFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -20,41 +18,36 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // 1. CORS'u aç (Artık hem localhost hem Vercel girebilir)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                // 2. CSRF korumasını kapat (Yoksa POST işlemlerini engeller)
-                .csrf(csrf -> csrf.disable())
-                // 3. Şimdilik tüm API kapılarını kilitsiz bırak
+                .csrf(csrf -> csrf.disable()) // POST işlemlerini engellemesini durdur
                 .authorizeHttpRequests(auth -> auth
+                        // BÜTÜN ÖNCÜ (OPTIONS) İSTEKLERİNE KESİN İZİN VER!
+                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                        // Diğer tüm isteklere şimdilik izin ver
                         .anyRequest().permitAll()
                 );
-
         return http.build();
     }
 
-    // 🚀 İŞTE SİSTEMİN ÇÖKMESİNİ ENGELLEYEN O EKSİK PARÇA!
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
+    // 🔥 İŞTE CANAVARIN FİŞİNİ ÇEKECEK NÜKLEER SİLAH (GLOBAL CORS) 🔥
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
-        CorsConfiguration configuration = new CorsConfiguration();
-
-        // 🔥 İŞTE BÖLÜM SONU CANAVARINI YENDİĞİMİZ YER! 🔥
-        // Hem senin bilgisayarına hem de Vercel'deki canlı siteye izin verdik.
-        configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:3000",
-                "https://uni-cycle-seven.vercel.app"
-        ));
-
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        configuration.setAllowCredentials(true);
+    public CorsFilter corsFilter() {
+        CorsConfiguration config = new CorsConfiguration();
+        config.setAllowCredentials(true);
+        config.addAllowedOrigin("http://localhost:3000");
+        config.addAllowedOrigin("https://uni-cycle-seven.vercel.app");
+        // Vercel'in sormak istediği tüm sorulara ve göndereceği tüm başlıklara izin veriyoruz:
+        config.addAllowedHeader("*");
+        config.addAllowedMethod("*");
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
-        return source;
+        source.registerCorsConfiguration("/**", config);
+
+        // Bu filtre, Spring Security'den bile ÖNCE çalışır ve Vercel'i anında içeri alır!
+        return new CorsFilter(source);
     }
 }
