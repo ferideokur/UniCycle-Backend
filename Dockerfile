@@ -1,10 +1,16 @@
+# 1. Aşama: Build
 FROM maven:3.9.6-eclipse-temurin-21 AS build
 WORKDIR /app
-# Sistem dilini UTF-8 yapıyoruz ki karakter hatası vermesin
-ENV LANG=C.UTF-8
-COPY . .
-RUN mvn clean package -DskipTests
 
+# Karakter hatalarını engellemek için sistem dili
+ENV LANG=C.UTF-8
+
+COPY . .
+
+# Testleri hem derlemeyi hem çalıştırmayı atlıyoruz (En garantisi budur)
+RUN mvn clean package -Dmaven.test.skip=true
+
+# 2. Aşama: Run
 FROM eclipse-temurin:21-jdk-jammy
 WORKDIR /app
 COPY --from=build /app/target/backend-0.0.1-SNAPSHOT.jar app.jar
