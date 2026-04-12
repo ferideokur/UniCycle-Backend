@@ -27,6 +27,10 @@ public class Message {
     // Karşı taraf mesajı okudu mu?
     private boolean isRead = false;
 
+    // 🚀 İŞTE BEKLENEN FACEBOOK ÖZELLİĞİ: MESAJ SİLME!
+    @Column(name = "is_deleted")
+    private boolean isDeleted = false;
+
     private LocalDateTime createdAt = LocalDateTime.now();
 
     // --- GETTER VE SETTER METOTLARI ---
@@ -45,6 +49,9 @@ public class Message {
 
     public boolean isRead() { return isRead; }
     public void setRead(boolean read) { this.isRead = read; }
+
+    public boolean isDeleted() { return isDeleted; }
+    public void setDeleted(boolean deleted) { this.isDeleted = deleted; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
