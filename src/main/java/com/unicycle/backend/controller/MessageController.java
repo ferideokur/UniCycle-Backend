@@ -13,7 +13,7 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/messages")
-@CrossOrigin(origins = "https://uni-cycle-seven.vercel.app") // Vercel'e izin veriyoruz
+@CrossOrigin(origins = "*") // Vercel'den veya Localhost'tan engelsiz veri çekimi için yıldıza çevrildi
 public class MessageController {
 
     @Autowired
@@ -37,6 +37,10 @@ public class MessageController {
             msg.setSender(sender);
             msg.setReceiver(receiver);
             msg.setContent(content);
+
+            // Eğer modelinizde createdAt alanı otomatik dolmuyorsa (şimdiki zamanı atıyoruz):
+            // msg.setCreatedAt(new Date());
+
             messageRepository.save(msg);
 
             return ResponseEntity.ok(Map.of("success", true, "message", "Mesaj iletildi", "data", msg));
@@ -48,49 +52,69 @@ public class MessageController {
     // 2. İKİ KİŞİ ARASINDAKİ SOHBET GEÇMİŞİNİ GETİRME
     @GetMapping("/history")
     public ResponseEntity<?> getChatHistory(@RequestParam Long user1Id, @RequestParam Long user2Id) {
-        User user1 = userRepository.findById(user1Id).orElseThrow();
-        User user2 = userRepository.findById(user2Id).orElseThrow();
+        try {
+            User user1 = userRepository.findById(user1Id).orElseThrow();
+            User user2 = userRepository.findById(user2Id).orElseThrow();
 
-        List<Message> history = messageRepository.findChatHistory(user1, user2);
+            List<Message> history = messageRepository.findChatHistory(user1, user2);
+            boolean needsSave = false;
 
-        // Mesajlar okunduğunda isRead'i true yapalım
-        for (Message m : history) {
-            if (m.getReceiver().getId().equals(user1Id) && !m.isRead()) {
-                m.setRead(true);
-                messageRepository.save(m);
+            // Mesajlar okunduğunda isRead'i true yapalım
+            for (Message m : history) {
+                // Eğer mesajı ben aldıysam ve henüz okunmadıysa, okundu olarak işaretle
+                if (m.getReceiver().getId().equals(user1Id) && !m.isRead()) {
+                    m.setRead(true);
+                    needsSave = true;
+                }
             }
-        }
 
-        return ResponseEntity.ok(history);
+            if (needsSave) {
+                messageRepository.saveAll(history); // Tek tek değil, hepsini birden kaydet (Performans için)
+            }
+
+            return ResponseEntity.ok(history);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Geçmiş alınamadı: " + e.getMessage());
+        }
     }
 
     // 3. GELEN KUTUSU LİSTESİ (Kimlerle konuşmuş?)
     @GetMapping("/inbox/{userId}")
     public ResponseEntity<?> getInbox(@PathVariable Long userId) {
-        User me = userRepository.findById(userId).orElseThrow();
-        List<Message> allMessages = messageRepository.findAllUserMessages(me);
+        try {
+            User me = userRepository.findById(userId).orElseThrow();
+            List<Message> allMessages = messageRepository.findAllUserMessages(me);
 
-        // Son mesajlara göre gruplama yapıp gelen kutusunu oluşturuyoruz
-        Map<Long, Map<String, Object>> inbox = new LinkedHashMap<>();
+            // Son mesajlara göre gruplama yapıp gelen kutusunu oluşturuyoruz
+            Map<Long, Map<String, Object>> inbox = new LinkedHashMap<>();
 
-        for (Message m : allMessages) {
-            User otherUser = m.getSender().getId().equals(userId) ? m.getReceiver() : m.getSender();
+            for (Message m : allMessages) {
+                User otherUser = m.getSender().getId().equals(userId) ? m.getReceiver() : m.getSender();
 
-            if (!inbox.containsKey(otherUser.getId())) {
-                Map<String, Object> chatInfo = new HashMap<>();
-                chatInfo.put("id", otherUser.getId());
-                chatInfo.put("name", otherUser.getFullName());
-                chatInfo.put("lastMsg", m.getContent());
-                chatInfo.put("time", m.getCreatedAt());
-                chatInfo.put("unread", m.getReceiver().getId().equals(userId) && !m.isRead() ? 1 : 0);
-                inbox.put(otherUser.getId(), chatInfo);
-            } else {
-                if (m.getReceiver().getId().equals(userId) && !m.isRead()) {
-                    Map<String, Object> chatInfo = inbox.get(otherUser.getId());
-                    chatInfo.put("unread", (int) chatInfo.get("unread") + 1);
+                if (!inbox.containsKey(otherUser.getId())) {
+                    Map<String, Object> chatInfo = new HashMap<>();
+                    chatInfo.put("id", otherUser.getId());
+                    chatInfo.put("name", otherUser.getFullName());
+                    chatInfo.put("lastMsg", m.getContent());
+                    chatInfo.put("time", m.getCreatedAt());
+
+                    // Eğer mesaj bana geldiyse ve okunmadıysa sayacı 1 yap, aksi halde 0
+                    int unreadCount = (m.getReceiver().getId().equals(userId) && !m.isRead()) ? 1 : 0;
+                    chatInfo.put("unread", unreadCount);
+
+                    inbox.put(otherUser.getId(), chatInfo);
+                } else {
+                    // Eğer bu kişiyle daha önce bir mesaj bulunduysa (LinkedHashMap'te varsa)
+                    // ve bu sıradaki mesaj da bana geldiyse ve okunmadıysa sayacı artır
+                    if (m.getReceiver().getId().equals(userId) && !m.isRead()) {
+                        Map<String, Object> chatInfo = inbox.get(otherUser.getId());
+                        chatInfo.put("unread", (int) chatInfo.get("unread") + 1);
+                    }
                 }
             }
+            return ResponseEntity.ok(inbox.values());
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Gelen kutusu alınamadı: " + e.getMessage());
         }
-        return ResponseEntity.ok(inbox.values());
     }
 }
