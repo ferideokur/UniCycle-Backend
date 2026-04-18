@@ -9,11 +9,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/messages")
-@CrossOrigin(origins = "*") // Vercel'den veya Localhost'tan engelsiz veri çekimi için yıldıza çevrildi
+@CrossOrigin(origins = "*")
 public class MessageController {
 
     @Autowired
@@ -38,9 +37,6 @@ public class MessageController {
             msg.setReceiver(receiver);
             msg.setContent(content);
 
-            // Eğer modelinizde createdAt alanı otomatik dolmuyorsa (şimdiki zamanı atıyoruz):
-            // msg.setCreatedAt(new Date());
-
             messageRepository.save(msg);
 
             return ResponseEntity.ok(Map.of("success", true, "message", "Mesaj iletildi", "data", msg));
@@ -59,9 +55,7 @@ public class MessageController {
             List<Message> history = messageRepository.findChatHistory(user1, user2);
             boolean needsSave = false;
 
-            // Mesajlar okunduğunda isRead'i true yapalım
             for (Message m : history) {
-                // Eğer mesajı ben aldıysam ve henüz okunmadıysa, okundu olarak işaretle
                 if (m.getReceiver().getId().equals(user1Id) && !m.isRead()) {
                     m.setRead(true);
                     needsSave = true;
@@ -69,7 +63,7 @@ public class MessageController {
             }
 
             if (needsSave) {
-                messageRepository.saveAll(history); // Tek tek değil, hepsini birden kaydet (Performans için)
+                messageRepository.saveAll(history);
             }
 
             return ResponseEntity.ok(history);
@@ -78,14 +72,13 @@ public class MessageController {
         }
     }
 
-    // 3. GELEN KUTUSU LİSTESİ (Kimlerle konuşmuş?)
+    // 3. GELEN KUTUSU LİSTESİ
     @GetMapping("/inbox/{userId}")
     public ResponseEntity<?> getInbox(@PathVariable Long userId) {
         try {
             User me = userRepository.findById(userId).orElseThrow();
             List<Message> allMessages = messageRepository.findAllUserMessages(me);
 
-            // Son mesajlara göre gruplama yapıp gelen kutusunu oluşturuyoruz
             Map<Long, Map<String, Object>> inbox = new LinkedHashMap<>();
 
             for (Message m : allMessages) {
@@ -98,14 +91,11 @@ public class MessageController {
                     chatInfo.put("lastMsg", m.getContent());
                     chatInfo.put("time", m.getCreatedAt());
 
-                    // Eğer mesaj bana geldiyse ve okunmadıysa sayacı 1 yap, aksi halde 0
                     int unreadCount = (m.getReceiver().getId().equals(userId) && !m.isRead()) ? 1 : 0;
                     chatInfo.put("unread", unreadCount);
 
                     inbox.put(otherUser.getId(), chatInfo);
                 } else {
-                    // Eğer bu kişiyle daha önce bir mesaj bulunduysa (LinkedHashMap'te varsa)
-                    // ve bu sıradaki mesaj da bana geldiyse ve okunmadıysa sayacı artır
                     if (m.getReceiver().getId().equals(userId) && !m.isRead()) {
                         Map<String, Object> chatInfo = inbox.get(otherUser.getId());
                         chatInfo.put("unread", (int) chatInfo.get("unread") + 1);
@@ -115,6 +105,28 @@ public class MessageController {
             return ResponseEntity.ok(inbox.values());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Gelen kutusu alınamadı: " + e.getMessage());
+        }
+    }
+
+    // 🚀 ÇÖZÜM 1: TEK BİR MESAJI SİLME API'Sİ
+    @DeleteMapping("/{msgId}")
+    public ResponseEntity<?> deleteSingleMessage(@PathVariable Long msgId) {
+        try {
+            messageRepository.deleteById(msgId);
+            return ResponseEntity.ok(Map.of("success", true, "message", "Mesaj veritabanından kalıcı olarak silindi."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Mesaj silinemedi: " + e.getMessage());
+        }
+    }
+
+    // 🚀 ÇÖZÜM 2: TÜM SOHBETİ (KİŞİYİ) SİLME API'Sİ
+    @DeleteMapping("/conversation")
+    public ResponseEntity<?> deleteEntireConversation(@RequestParam Long user1Id, @RequestParam Long user2Id) {
+        try {
+            messageRepository.deleteConversation(user1Id, user2Id);
+            return ResponseEntity.ok(Map.of("success", true, "message", "Sohbet geçmişi veritabanından kalıcı olarak silindi."));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Sohbet silinemedi: " + e.getMessage());
         }
     }
 }
