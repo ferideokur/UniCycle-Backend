@@ -27,9 +27,15 @@ public class Message {
     // Karşı taraf mesajı okudu mu?
     private boolean isRead = false;
 
-    // 🚀 İŞTE BEKLENEN FACEBOOK ÖZELLİĞİ: MESAJ SİLME!
+    // MESAJ SİLME
     @Column(name = "is_deleted")
     private boolean isDeleted = false;
+
+    // 🚀 YENİ EKLENEN: WHATSAPP ALINTI BAĞLANTISI
+    // Eğer bu mesaj başka bir mesaja cevap olarak atıldıysa, o orijinal mesajın ID'sini tutacak.
+    // Normal mesajlarda burası boş (null) kalacak.
+    @Column(name = "replied_message_id", nullable = true)
+    private Long repliedMessageId;
 
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -55,6 +61,10 @@ public class Message {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    // 🚀 YENİ GETTER VE SETTER
+    public Long getRepliedMessageId() { return repliedMessageId; }
+    public void setRepliedMessageId(Long repliedMessageId) { this.repliedMessageId = repliedMessageId; }
 
     public Message() {}
 }
