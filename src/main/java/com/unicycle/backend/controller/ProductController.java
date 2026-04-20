@@ -49,6 +49,9 @@ public class ProductController {
             newProduct.setDescription(request.getDescription());
             newProduct.setPhotosBase64(request.getPhotosBase64());
 
+            // 🌟 YENİ: Üniversite bilgisini de ilana ekleyip kaydediyoruz
+            newProduct.setUniversity(request.getUniversity());
+
             Product savedProduct = productRepository.save(newProduct);
             return ResponseEntity.ok(savedProduct);
 
@@ -58,14 +61,23 @@ public class ProductController {
         }
     }
 
-    // GET ALL PRODUCTS
+    // GET ALL PRODUCTS (🌟 YENİ: Üniversite Filtresi Eklendi)
     @GetMapping
-    public ResponseEntity<List<Product>> getAllProducts() {
-        List<Product> products = productRepository.findAll();
+    public ResponseEntity<List<Product>> getProducts(@RequestParam(value = "university", required = false) String university) {
+        List<Product> products;
+
+        // Eğer URL'den ?university=Piri Reis gibi bir filtre gelmişse sadece onları getir
+        if (university != null && !university.trim().isEmpty()) {
+            products = productRepository.findByUniversityIgnoreCase(university.trim());
+        } else {
+            // Hiçbir filtre gelmemişse tüm ilanları getir (Eski çalışma mantığı bozulmaz)
+            products = productRepository.findAll();
+        }
+
         return ResponseEntity.ok(products);
     }
 
-    // 🔍 NEW: SEARCH PRODUCTS ENDPOINT
+    // 🔍 SEARCH PRODUCTS ENDPOINT
     @GetMapping("/search")
     public ResponseEntity<List<Product>> searchProducts(@RequestParam("q") String query) {
         try {

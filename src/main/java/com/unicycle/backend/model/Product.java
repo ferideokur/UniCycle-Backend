@@ -22,7 +22,7 @@ public class Product {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 🚀 YENİ: İlanı veren kullanıcıyı (User) bağlıyoruz
+    // 🚀 İlanı veren kullanıcıyı (User) bağlıyoruz
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -36,16 +36,20 @@ public class Product {
     @Column(nullable = false)
     private BigDecimal price;
 
-    // 🚀 YENİ: Fiyat Tipi (fiyat, takas, ucretsiz)
+    // 🚀 Fiyat Tipi (fiyat, takas, ucretsiz)
     @Column(name = "price_type", length = 20)
     private String priceType;
 
     @Column(nullable = false, length = 150)
     private String category;
 
-    // 🚀 YENİ: Ürünün durumu (Sıfır, İkinci El vb.)
+    // 🚀 Ürünün durumu (Sıfır, İkinci El vb.)
     @Column(name = "item_condition", length = 100)
     private String itemCondition;
+
+    // 🌟 YENİ: İlanın Hangi Üniversiteye Ait Olduğunu Tutan Alan
+    @Column(name = "university", length = 150)
+    private String university;
 
     /**
      * Dynamic attributes specific to the product's category.
@@ -55,7 +59,7 @@ public class Product {
     @Column(name = "category_details", columnDefinition = "jsonb")
     private Map<String, Object> categoryDetails;
 
-    // 🚀 YENİ: Çoklu Fotoğrafları Tutacağımız Liste (Base64 Metin Olarak)
+    // 🚀 Çoklu Fotoğrafları Tutacağımız Liste (Base64 Metin Olarak)
     @ElementCollection
     @CollectionTable(name="product_photos", joinColumns=@JoinColumn(name="product_id"))
     @Column(name="photo_base64", columnDefinition="TEXT")
@@ -90,6 +94,10 @@ public class Product {
 
     public String getItemCondition() { return itemCondition; }
     public void setItemCondition(String itemCondition) { this.itemCondition = itemCondition; }
+
+    // 🌟 YENİ: Üniversite Getter ve Setter
+    public String getUniversity() { return university; }
+    public void setUniversity(String university) { this.university = university; }
 
     public Map<String, Object> getCategoryDetails() { return categoryDetails; }
     public void setCategoryDetails(Map<String, Object> categoryDetails) { this.categoryDetails = categoryDetails; }

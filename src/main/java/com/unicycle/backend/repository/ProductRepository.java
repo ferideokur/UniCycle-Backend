@@ -9,7 +9,9 @@ import java.util.List;
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
 
-    // 🚀 Custom SQL Query generation by Spring Data JPA
-    // Searches for products where title OR category contains the query (case-insensitive)
+    // 🚀 Arama Çubuğu İçin: Başlık veya Kategoriye göre arama
     List<Product> findByTitleContainingIgnoreCaseOrCategoryContainingIgnoreCase(String title, String category);
+
+    // 🌟 YENİ: Sadece Belirli Bir Üniversitenin İlanlarını Getirmek İçin
+    List<Product> findByUniversityIgnoreCase(String university);
 }

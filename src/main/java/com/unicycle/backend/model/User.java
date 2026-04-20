@@ -20,6 +20,10 @@ public class User {
     @Column(nullable = false)
     private String password;
 
+    // 🎓 YENİ: Kullanıcının Üniversite Bilgisi
+    @Column(name = "university", length = 150)
+    private String university;
+
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
@@ -27,7 +31,7 @@ public class User {
     @Column(name = "last_active")
     private LocalDateTime lastActive;
 
-    // 🟢 ÇEVRİMİÇİ DURUMU (Tertemiz, tek parça ve büyük 'B' ile!)
+    // 🟢 ÇEVRİMİÇİ DURUMU
     @Column(name = "is_online")
     private Boolean isOnline = false;
 
@@ -52,6 +56,10 @@ public class User {
 
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
+
+    // 🎓 YENİ: Üniversite Getter ve Setter'ları
+    public String getUniversity() { return university; }
+    public void setUniversity(String university) { this.university = university; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

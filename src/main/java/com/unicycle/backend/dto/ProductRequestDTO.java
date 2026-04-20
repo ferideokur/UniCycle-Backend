@@ -14,6 +14,9 @@ public class ProductRequestDTO {
     private String description;
     private List<String> photosBase64;
 
+    // 🌟 YENİ: Frontend'den gelecek üniversite verisini tutacak alan
+    private String university;
+
     // --- GETTER VE SETTER METOTLARI (Hataları Yok Eden Kısım) ---
 
     public Long getUserId() { return userId; }
@@ -39,4 +42,8 @@ public class ProductRequestDTO {
 
     public List<String> getPhotosBase64() { return photosBase64; }
     public void setPhotosBase64(List<String> photosBase64) { this.photosBase64 = photosBase64; }
+
+    // 🌟 YENİ: Üniversite alanı için Getter ve Setter
+    public String getUniversity() { return university; }
+    public void setUniversity(String university) { this.university = university; }
 }

@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime; // 🚀 EKLENDİ (Zaman damgası için)
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,7 +52,9 @@ public class UserController {
             userData.put("id", user.getId());
             userData.put("fullName", user.getFullName());
             userData.put("email", user.getEmail());
-            userData.put("lastActive", user.getLastActive()); // 🚀 EKLENDİ
+            userData.put("lastActive", user.getLastActive());
+            // 🎓 YENİ: Giriş yaparken üniversite bilgisini de Next.js'e yolluyoruz
+            userData.put("university", user.getUniversity());
             userData.put("message", "Login Successful");
 
             return ResponseEntity.ok(userData);
@@ -61,19 +63,20 @@ public class UserController {
         }
     }
 
-    // 🔍 NEW: SEARCH USERS ENDPOINT
+    // 🔍 SEARCH USERS ENDPOINT
     @GetMapping("/search")
     public ResponseEntity<?> searchUsers(@RequestParam("q") String query) {
         try {
             List<User> users = userRepository.findByFullNameContainingIgnoreCase(query);
 
-            // Map to DTO to avoid sending passwords to frontend! Security first!
             List<Map<String, Object>> response = users.stream().map(u -> {
                 Map<String, Object> map = new HashMap<>();
                 map.put("id", u.getId());
                 map.put("fullName", u.getFullName());
                 map.put("email", u.getEmail());
-                map.put("lastActive", u.getLastActive()); // 🚀 EKLENDİ
+                map.put("lastActive", u.getLastActive());
+                // 🎓 YENİ: Arama sonuçlarında üniversiteyi de göster
+                map.put("university", u.getUniversity());
                 return map;
             }).collect(Collectors.toList());
 
@@ -94,7 +97,9 @@ public class UserController {
                         userData.put("id", user.getId());
                         userData.put("fullName", user.getFullName());
                         userData.put("email", user.getEmail());
-                        userData.put("lastActive", user.getLastActive()); // 🚀 EKLENDİ (En önemlisi)
+                        userData.put("lastActive", user.getLastActive());
+                        // 🎓 YENİ: Başkasının profiline bakarken üniversitesini gör
+                        userData.put("university", user.getUniversity());
                         return ResponseEntity.ok(userData);
                     })
                     .orElse(ResponseEntity.notFound().build());
@@ -104,7 +109,6 @@ public class UserController {
     }
 
     // 🚀 4. YENİ PING (SİNYAL) MOTORU 🚀
-    // Next.js her dakika buraya istek atacak ve veritabanındaki saati güncelleyecek.
     @PostMapping("/{id}/ping")
     public ResponseEntity<?> pingUser(@PathVariable Long id) {
         return userRepository.findById(id).map(user -> {
@@ -113,11 +117,11 @@ public class UserController {
             return ResponseEntity.ok().build();
         }).orElse(ResponseEntity.notFound().build());
     }
+
     // 🚀 5. ANINDA ÇEVRİMDIŞI YAPMA (LOGOUT) MOTORU
     @PostMapping("/{id}/logout")
     public ResponseEntity<?> logoutUser(@PathVariable Long id) {
         return userRepository.findById(id).map(user -> {
-            // Saati 10 dakika geriye alıyoruz ki sistem anında "5 dakikadan fazla olmuş, bu çevrimdışı" desin!
             user.setLastActive(LocalDateTime.now().minusMinutes(10));
             userRepository.save(user);
             return ResponseEntity.ok().build();
