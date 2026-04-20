@@ -118,6 +118,21 @@ public class UserController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    // 🚨 HESAP SİLME MOTORU (TEHLİKELİ BÖLGE)
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+        try {
+            if (userRepository.existsById(id)) {
+                userRepository.deleteById(id);
+                return ResponseEntity.ok("Kullanıcı ve ona ait tüm veriler başarıyla silindi.");
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Silme işlemi sırasında hata oluştu: " + e.getMessage());
+        }
+    }
+
     @PostMapping("/{id}/ping")
     public ResponseEntity<?> pingUser(@PathVariable Long id) {
         return userRepository.findById(id).map(user -> {
