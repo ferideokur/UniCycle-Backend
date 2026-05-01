@@ -20,9 +20,25 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    // 🎓 YENİ: Kullanıcının Üniversite Bilgisi
+    // 🎓 Kullanıcının Üniversite Bilgisi
     @Column(name = "university", length = 150)
     private String university;
+
+    // 📝 YENİ: Kullanıcı Biyografisi
+    @Column(name = "bio", length = 255)
+    private String bio;
+
+    // 🖼️ YENİ: Profil Fotoğrafı (Base64 çok uzun olduğu için TEXT olmak zorunda!)
+    @Column(name = "profile_image", columnDefinition = "TEXT")
+    private String profileImage;
+
+    // 🖼️ YENİ: Kapak Fotoğrafı (Base64)
+    @Column(name = "cover_image", columnDefinition = "TEXT")
+    private String coverImage;
+
+    // ↕️ YENİ: Kapak Fotoğrafı Dikey Pozisyonu (0-100 arası)
+    @Column(name = "cover_y")
+    private Integer coverY;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -57,9 +73,22 @@ public class User {
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
 
-    // 🎓 YENİ: Üniversite Getter ve Setter'ları
     public String getUniversity() { return university; }
     public void setUniversity(String university) { this.university = university; }
+
+    // 🚀 YENİ EKLENENLERİN GETTER/SETTER'LARI
+    public String getBio() { return bio; }
+    public void setBio(String bio) { this.bio = bio; }
+
+    public String getProfileImage() { return profileImage; }
+    public void setProfileImage(String profileImage) { this.profileImage = profileImage; }
+
+    public String getCoverImage() { return coverImage; }
+    public void setCoverImage(String coverImage) { this.coverImage = coverImage; }
+
+    public Integer getCoverY() { return coverY; }
+    public void setCoverY(Integer coverY) { this.coverY = coverY; }
+    // ----------------------------------------
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

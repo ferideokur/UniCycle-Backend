@@ -56,6 +56,11 @@ public class UserController {
             userData.put("email", user.getEmail());
             userData.put("lastActive", user.getLastActive());
             userData.put("university", user.getUniversity());
+            // 🚀 YENİ: Login olurken artık profil verilerini de gönderiyoruz
+            userData.put("bio", user.getBio());
+            userData.put("profileImage", user.getProfileImage());
+            userData.put("coverImage", user.getCoverImage());
+            userData.put("coverY", user.getCoverY());
             userData.put("message", "Login Successful");
 
             return ResponseEntity.ok(userData);
@@ -77,6 +82,8 @@ public class UserController {
                 map.put("email", u.getEmail());
                 map.put("lastActive", u.getLastActive());
                 map.put("university", u.getUniversity());
+                // Arama sonuçlarında fotoğraf da çıksın diye ekliyoruz:
+                map.put("profileImage", u.getProfileImage());
                 return map;
             }).collect(Collectors.toList());
 
@@ -87,7 +94,7 @@ public class UserController {
         }
     }
 
-    // BAŞKASININ PROFİLİNİ GÖRÜNTÜLEME
+    // BAŞKASININ (VEYA KENDİ) PROFİLİNİ GÖRÜNTÜLEME
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserProfile(@PathVariable Long id) {
         try {
@@ -99,6 +106,11 @@ public class UserController {
                         userData.put("email", user.getEmail());
                         userData.put("lastActive", user.getLastActive());
                         userData.put("university", user.getUniversity());
+                        // 🚀 YENİ: Profil sayfasına girildiğinde resim ve bio gelsin
+                        userData.put("bio", user.getBio());
+                        userData.put("profileImage", user.getProfileImage());
+                        userData.put("coverImage", user.getCoverImage());
+                        userData.put("coverY", user.getCoverY());
                         return ResponseEntity.ok(userData);
                     })
                     .orElse(ResponseEntity.notFound().build());
@@ -107,15 +119,39 @@ public class UserController {
         }
     }
 
-    // 📝 PROFİL GÜNCELLEME MOTORU (TUTARSIZLIĞI ÇÖZEN YENİ KISIM)
-    @PutMapping("/{id}/update-university")
-    public ResponseEntity<?> updateUniversity(@PathVariable Long id, @RequestBody Map<String, String> data) {
-        return userRepository.findById(id).map(user -> {
-            String newUni = data.get("university");
-            user.setUniversity(newUni);
-            userRepository.save(user);
-            return ResponseEntity.ok("Üniversite başarıyla güncellendi: " + newUni);
-        }).orElse(ResponseEntity.notFound().build());
+    // 📝 KAPSAMLI PROFİL GÜNCELLEME MOTORU (TÜM VERİLER İÇİN)
+    @PutMapping("/{id}")
+    public ResponseEntity<?> updateUserProfile(@PathVariable Long id, @RequestBody Map<String, Object> updateData) {
+        try {
+            return userRepository.findById(id).map(user -> {
+                // Hangi veri gönderildiyse sadece onu günceller
+                if (updateData.containsKey("bio")) {
+                    user.setBio((String) updateData.get("bio"));
+                }
+                if (updateData.containsKey("profileImage")) {
+                    user.setProfileImage((String) updateData.get("profileImage"));
+                }
+                if (updateData.containsKey("coverImage")) {
+                    user.setCoverImage((String) updateData.get("coverImage"));
+                }
+                if (updateData.containsKey("coverY")) {
+                    Object coverYObj = updateData.get("coverY");
+                    if (coverYObj != null) {
+                        user.setCoverY(Integer.parseInt(coverYObj.toString()));
+                    } else {
+                        user.setCoverY(50); // Boş gelirse varsayılan 50 (ortada) olsun
+                    }
+                }
+                if (updateData.containsKey("university")) {
+                    user.setUniversity((String) updateData.get("university"));
+                }
+
+                userRepository.save(user);
+                return ResponseEntity.ok("Profil başarıyla güncellendi.");
+            }).orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("Güncelleme hatası: " + e.getMessage());
+        }
     }
 
     // 🚨 HESAP SİLME MOTORU (TEHLİKELİ BÖLGE)
