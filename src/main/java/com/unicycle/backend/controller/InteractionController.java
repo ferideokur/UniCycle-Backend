@@ -91,4 +91,18 @@ public class InteractionController {
             return ResponseEntity.badRequest().body("Bildirim kaydedilemedi: " + e.getMessage());
         }
     }
+    // 3. BİLDİRİM SİLME İŞLEMİ (Tekli veya Tümü)
+    @DeleteMapping("/notifications/{id}")
+    public ResponseEntity<?> deleteNotification(@PathVariable Long id) {
+        try {
+            if (notificationRepository.existsById(id)) {
+                notificationRepository.deleteById(id);
+                return ResponseEntity.ok(Map.of("success", true, "message", "Bildirim başarıyla silindi."));
+            } else {
+                return ResponseEntity.notFound().build();
+            }
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Bildirim silinirken hata oluştu: " + e.getMessage());
+        }
+    }
 }
