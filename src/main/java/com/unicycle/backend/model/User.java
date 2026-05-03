@@ -24,30 +24,44 @@ public class User {
     @Column(name = "university", length = 150)
     private String university;
 
-    // 📝 YENİ: Kullanıcı Biyografisi
+    // 📝 Kullanıcı Biyografisi
     @Column(name = "bio", length = 255)
     private String bio;
 
-    // 🖼️ YENİ: Profil Fotoğrafı (Base64 çok uzun olduğu için TEXT olmak zorunda!)
+    // 🖼️ Profil Fotoğrafı (Base64)
     @Column(name = "profile_image", columnDefinition = "TEXT")
     private String profileImage;
 
-    // 🖼️ YENİ: Kapak Fotoğrafı (Base64)
+    // 🖼️ Kapak Fotoğrafı (Base64)
     @Column(name = "cover_image", columnDefinition = "TEXT")
     private String coverImage;
 
-    // ↕️ YENİ: Kapak Fotoğrafı Dikey Pozisyonu (0-100 arası)
+    // ↕️ Kapak Fotoğrafı Dikey Pozisyonu
     @Column(name = "cover_y")
-    private Integer coverY;
+    private Integer coverY = 50;
+
+    // 👑 ROZET SİSTEMİ: Kullanıcının Rolü (USER veya ADMIN)
+    @Column(name = "role")
+    private String role = "USER";
+
+    // ⏳ ONAY SİSTEMİ: Kullanıcının Durumu (PENDING, ACTIVE, SUSPENDED)
+    @Column(name = "status")
+    private String status = "PENDING";
+
+    // 📄 ÖĞRENCİ BELGESİ: Admin panelinde inceleyeceğin dosya (Base64 TEXT)
+    @Column(name = "document_url", columnDefinition = "TEXT")
+    private String documentUrl;
+
+    // 🚀 YENİ EKLENDİ: ŞİFRE SIFIRLAMA KODU (OTP) 🚀
+    @Column(name = "otp_code", length = 6)
+    private String otpCode;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    // KULLANICININ SON GÖRÜLME ZAMANI
     @Column(name = "last_active")
     private LocalDateTime lastActive;
 
-    // 🟢 ÇEVRİMİÇİ DURUMU
     @Column(name = "is_online")
     private Boolean isOnline = false;
 
@@ -57,9 +71,12 @@ public class User {
     @PrePersist
     protected void onCreate() {
         this.createdAt = LocalDateTime.now();
+        // Yeni kayıtlar her zaman PENDING olarak başlasın
+        if (this.role == null) this.role = "USER";
+        if (this.status == null) this.status = "PENDING";
     }
 
-    // --- MANUEL GETTER VE SETTER'LAR ---
+    // --- GETTER VE SETTER'LAR ---
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -76,7 +93,6 @@ public class User {
     public String getUniversity() { return university; }
     public void setUniversity(String university) { this.university = university; }
 
-    // 🚀 YENİ EKLENENLERİN GETTER/SETTER'LARI
     public String getBio() { return bio; }
     public void setBio(String bio) { this.bio = bio; }
 
@@ -88,7 +104,24 @@ public class User {
 
     public Integer getCoverY() { return coverY; }
     public void setCoverY(Integer coverY) { this.coverY = coverY; }
-    // ----------------------------------------
+
+    // 🚀 SİHİRLİ GETTER'LAR
+    public String getRole() {
+        return (role == null) ? "USER" : role;
+    }
+    public void setRole(String role) { this.role = role; }
+
+    public String getStatus() {
+        return (status == null) ? "ACTIVE" : status;
+    }
+    public void setStatus(String status) { this.status = status; }
+
+    public String getDocumentUrl() { return documentUrl; }
+    public void setDocumentUrl(String documentUrl) { this.documentUrl = documentUrl; }
+
+    // 🚀 YENİ GETTER VE SETTER (OTP KODU) 🚀
+    public String getOtpCode() { return otpCode; }
+    public void setOtpCode(String otpCode) { this.otpCode = otpCode; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

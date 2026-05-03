@@ -10,9 +10,13 @@ import java.util.Optional;
 @Repository
 public interface UserRepository extends JpaRepository<User, Long> {
 
+    // 📧 Email ile kullanıcı bulma (Login için)
     Optional<User> findByEmail(String email);
 
-    // 🚀 Custom SQL Query for User Search
-    // Searches users by their full name (case-insensitive)
+    // 🔍 İsim ile kullanıcı arama (Arama motoru için)
     List<User> findByFullNameContainingIgnoreCase(String fullName);
+
+    // ⏳ STATÜ SORGULAMA (Admin Paneli için en kritik sorgu)
+    // "PENDING" veya "ACTIVE" olan kullanıcıları listeler.
+    List<User> findByStatus(String status);
 }
