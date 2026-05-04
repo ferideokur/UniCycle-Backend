@@ -28,12 +28,12 @@ public class User {
     @Column(name = "bio", length = 255)
     private String bio;
 
-    // 🖼️ Profil Fotoğrafı (Base64)
-    @Column(name = "profile_image", columnDefinition = "TEXT")
+    // 🖼️ Profil Fotoğrafı (Base64) - Uzun metinler için LONGTEXT yapıldı
+    @Column(name = "profile_image", columnDefinition = "LONGTEXT")
     private String profileImage;
 
-    // 🖼️ Kapak Fotoğrafı (Base64)
-    @Column(name = "cover_image", columnDefinition = "TEXT")
+    // 🖼️ Kapak Fotoğrafı (Base64) - Uzun metinler için LONGTEXT yapıldı
+    @Column(name = "cover_image", columnDefinition = "LONGTEXT")
     private String coverImage;
 
     // ↕️ Kapak Fotoğrafı Dikey Pozisyonu
@@ -48,11 +48,11 @@ public class User {
     @Column(name = "status")
     private String status = "PENDING";
 
-    // 📄 ÖĞRENCİ BELGESİ: Admin panelinde inceleyeceğin dosya (Base64 TEXT)
-    @Column(name = "document_url", columnDefinition = "TEXT")
-    private String documentUrl;
+    // 🚀 İŞTE ÇÖZÜM BURADA: İsim "documentBase64" oldu ve büyük dosyalar için LONGTEXT yapıldı!
+    @Column(name = "document_base64", columnDefinition = "LONGTEXT")
+    private String documentBase64;
 
-    // 🚀 YENİ EKLENDİ: ŞİFRE SIFIRLAMA KODU (OTP) 🚀
+    // 🚀 ŞİFRE SIFIRLAMA KODU (OTP)
     @Column(name = "otp_code", length = 6)
     private String otpCode;
 
@@ -105,7 +105,6 @@ public class User {
     public Integer getCoverY() { return coverY; }
     public void setCoverY(Integer coverY) { this.coverY = coverY; }
 
-    // 🚀 SİHİRLİ GETTER'LAR
     public String getRole() {
         return (role == null) ? "USER" : role;
     }
@@ -116,10 +115,10 @@ public class User {
     }
     public void setStatus(String status) { this.status = status; }
 
-    public String getDocumentUrl() { return documentUrl; }
-    public void setDocumentUrl(String documentUrl) { this.documentUrl = documentUrl; }
+    // 🚀 DÜZELTİLEN GETTER VE SETTER (documentBase64)
+    public String getDocumentBase64() { return documentBase64; }
+    public void setDocumentBase64(String documentBase64) { this.documentBase64 = documentBase64; }
 
-    // 🚀 YENİ GETTER VE SETTER (OTP KODU) 🚀
     public String getOtpCode() { return otpCode; }
     public void setOtpCode(String otpCode) { this.otpCode = otpCode; }
 

@@ -193,25 +193,22 @@ public class UserController {
         }
     }
 
-    // 4️⃣ PROFİL GÖRÜNTÜLEME
+    // 4️⃣ PROFİL GÖRÜNTÜLEME (🚀🚀 TAM OTOMATİK SİSTEM 🚀🚀)
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserProfile(@PathVariable Long id) {
         try {
-            return userRepository.findById(id)
-                    .map(user -> {
-                        Map<String, Object> userData = new HashMap<>();
-                        userData.put("id", user.getId());
-                        userData.put("fullName", user.getFullName());
-                        userData.put("email", user.getEmail());
-                        userData.put("lastActive", user.getLastActive());
-                        userData.put("university", user.getUniversity());
-                        userData.put("bio", user.getBio());
-                        userData.put("profileImage", user.getProfileImage());
-                        userData.put("coverImage", user.getCoverImage());
-                        userData.put("coverY", user.getCoverY());
-                        return ResponseEntity.ok(userData);
-                    })
-                    .orElse(ResponseEntity.notFound().build());
+            Optional<User> userOpt = userRepository.findById(id);
+            if (userOpt.isPresent()) {
+                User user = userOpt.get();
+                // Güvenlik için şifre ve doğrulama kodlarını asla göndermiyoruz!
+                user.setPassword(null);
+                user.setOtpCode(null);
+
+                // Spring Boot (Jackson) kullanıcının içindeki belge (documentUrl, file vb.)
+                // dahil TÜM bilgileri otomatik olarak Frontend'e yollayacak!
+                return ResponseEntity.ok(user);
+            }
+            return ResponseEntity.notFound().build();
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Kullanıcı getirilemedi.");
         }
