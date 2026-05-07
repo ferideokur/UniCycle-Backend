@@ -10,15 +10,15 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-// 🚀 GMAIL İÇİN GEREKLİ KÜTÜPHANELER GERİ GELDİ
 import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Properties;
 import java.util.stream.Collectors;
 
 @RestController
@@ -30,18 +30,16 @@ public class UserController {
     private final UserRepository userRepository;
     private final JdbcTemplate jdbcTemplate;
     private final PasswordEncoder passwordEncoder;
-    private final JavaMailSender mailSender; // 🚀 GMAIL SİSTEMİ EKLENDİ
 
+    // 🚀 DİKKAT: JavaMailSender BURADAN SİLİNDİ (ÇÖKMEYİ ENGELLEMEK İÇİN)
     @Autowired
-    public UserController(UserService userService, UserRepository userRepository, JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder, JavaMailSender mailSender) {
+    public UserController(UserService userService, UserRepository userRepository, JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder) {
         this.userService = userService;
         this.userRepository = userRepository;
         this.jdbcTemplate = jdbcTemplate;
         this.passwordEncoder = passwordEncoder;
-        this.mailSender = mailSender; // 🚀 BAŞLATILDI
     }
 
-    // 1️⃣ KULLANICI KAYDI
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
         try {
@@ -59,7 +57,6 @@ public class UserController {
         }
     }
 
-    // 2️⃣ GİRİŞ YAP (LOGIN)
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody Map<String, String> loginData) {
         try {
@@ -92,7 +89,7 @@ public class UserController {
         }
     }
 
-    // 🚀🚀 ŞİFREMİ UNUTTUM: KUSURSUZ GMAIL GÖNDERİMİ 🚀🚀
+    // 🚀🚀 MAİLİ MANUEL OLARAK ZORLA GÖNDEREN METOT (ASLA ÇÖKMEZ) 🚀🚀
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestParam("email") String email) {
         try {
@@ -103,13 +100,31 @@ public class UserController {
             }
 
             User user = userOptional.get();
-
-            // 6 haneli kod
             String otp = String.format("%06d", new java.util.Random().nextInt(999999));
+
             user.setOtpCode(otp);
             userRepository.save(user);
 
-            // 🚀 GOOGLE (GMAIL) ÜZERİNDEN MAİLİ ANINDA UÇURUYORUZ
+            System.out.println("🔔 KOD OLUŞTURULDU: " + otp);
+
+            // 🚀 BÜTÜN MAİL AYARLARINI BURADA, BUTONA BASILDIĞINDA YAPIYORUZ!
+            JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
+            mailSender.setHost("smtp.gmail.com");
+            mailSender.setPort(587);
+            mailSender.setUsername("unicycledestek@gmail.com");
+
+            // RENDER KASASINDAKİ 16 HANELİ ŞİFREYİ ÇEKİYORUZ!
+            String gmailPassword = System.getenv("GMAIL_PASSWORD");
+            if(gmailPassword == null || gmailPassword.trim().isEmpty()) {
+                throw new RuntimeException("GMAIL SIFRESI RENDER'DA BULUNAMADI!");
+            }
+            mailSender.setPassword(gmailPassword);
+
+            Properties props = mailSender.getJavaMailProperties();
+            props.put("mail.transport.protocol", "smtp");
+            props.put("mail.smtp.auth", "true");
+            props.put("mail.smtp.starttls.enable", "true");
+
             SimpleMailMessage message = new SimpleMailMessage();
             message.setFrom("unicycledestek@gmail.com");
             message.setTo(email);
@@ -117,20 +132,20 @@ public class UserController {
             message.setText("Merhaba " + user.getFullName() + ",\n\n"
                     + "Hesabınızın şifresini sıfırlamak için gereken doğrulama kodunuz:\n\n"
                     + "👉 " + otp + " 👈\n\n"
-                    + "Bu kodu kimseyle paylaşmayın. Eğer bu işlemi siz yapmadıysanız bu mesajı görmezden gelebilirsiniz.\n\n"
+                    + "Bu kodu kimseyle paylaşmayın.\n\n"
                     + "Sevgiler,\nUniCycle Destek Ekibi");
 
+            // MAİLİ ZORLA GÖNDER!
             mailSender.send(message);
-            System.out.println("✅ Gmail ile kod başarıyla gönderildi: " + email);
+            System.out.println("✅ Gmail ile kod başarıyla gönderildi!");
 
-            return ResponseEntity.ok("Kod başarıyla oluşturuldu.");
+            return ResponseEntity.ok("Kod başarıyla e-postanıza gönderildi.");
         } catch (Exception e) {
-            System.out.println("❌ Mail gönderim hatası: " + e.getMessage());
+            System.out.println("❌ MAİL GÖNDERİM HATASI: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("İşlem hatası: " + e.getMessage());
         }
     }
 
-    // 🚀🚀 ŞİFREMİ UNUTTUM AŞAMA 2: KODU DOĞRULAYIP YENİ ŞİFREYİ KAYDETME
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> payload) {
         try {
@@ -160,7 +175,6 @@ public class UserController {
         }
     }
 
-    // 3️⃣ ARAMA MOTORU (SEARCH)
     @GetMapping("/search")
     public ResponseEntity<?> searchUsers(@RequestParam("q") String query) {
         try {
@@ -183,7 +197,6 @@ public class UserController {
         }
     }
 
-    // 4️⃣ PROFİL GÖRÜNTÜLEME
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserProfile(@PathVariable Long id) {
         try {
@@ -200,7 +213,6 @@ public class UserController {
         }
     }
 
-    // 5️⃣ PROFİL GÜNCELLEME
     @PutMapping("/{id}")
     public ResponseEntity<?> updateUserProfile(@PathVariable Long id, @RequestBody Map<String, Object> updateData) {
         try {
@@ -223,7 +235,6 @@ public class UserController {
         }
     }
 
-    // 6️⃣ SON GÖRÜLME VE ÇIKIŞ
     @PostMapping("/{id}/ping")
     public ResponseEntity<?> pingUser(@PathVariable Long id) {
         return userRepository.findById(id).map(user -> {
@@ -241,10 +252,6 @@ public class UserController {
             return ResponseEntity.ok().build();
         }).orElse(ResponseEntity.notFound().build());
     }
-
-    // ==========================================
-    // 👑 ADMIN PANELI (GOD MODE) BÖLÜMÜ
-    // ==========================================
 
     @GetMapping("/status/{status}")
     public ResponseEntity<?> getUsersByStatus(@PathVariable String status) {
@@ -282,12 +289,10 @@ public class UserController {
         }
     }
 
-    // 🚀 D) KÖKTEN SİLME
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         try {
             if (userRepository.existsById(id)) {
-
                 jdbcTemplate.update("DELETE FROM notifications WHERE user_id = ?", id);
                 jdbcTemplate.update("DELETE FROM follows WHERE follower_id = ? OR following_id = ?", id, id);
                 jdbcTemplate.update("DELETE FROM comment WHERE user_id = ?", id);
@@ -295,7 +300,6 @@ public class UserController {
                 jdbcTemplate.update("DELETE FROM messages WHERE sender_id = ? OR receiver_id = ?", id, id);
 
                 userRepository.deleteById(id);
-
                 return ResponseEntity.ok("Kullanıcı, tüm bildirimleri ve verileriyle birlikte kökten silindi. 💥");
             } else {
                 return ResponseEntity.notFound().build();
@@ -305,7 +309,6 @@ public class UserController {
         }
     }
 
-    // 🚀 BÜYÜK KURTARICI METOT 🚀
     @GetMapping("/fix-db")
     public ResponseEntity<?> fixDatabase() {
         try {
