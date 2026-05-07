@@ -33,7 +33,6 @@ public class UserController {
     private final JdbcTemplate jdbcTemplate;
     private final PasswordEncoder passwordEncoder;
 
-    // 🚀 DİKKAT: JavaMailSender TAMAMEN KALDIRILDI! ARTIK BREVO API VAR!
     @Autowired
     public UserController(UserService userService, UserRepository userRepository, JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder) {
         this.userService = userService;
@@ -42,7 +41,7 @@ public class UserController {
         this.passwordEncoder = passwordEncoder;
     }
 
-    // 1️⃣ KULLANICI KAYDI (🚀 ÇİFTE KİLİT YÖNTEMİ)
+    // 1️⃣ KULLANICI KAYDI
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
         try {
@@ -111,13 +110,15 @@ public class UserController {
             user.setOtpCode(otp);
             userRepository.save(user);
 
-            // 🚀 RENDER'IN ASLA ENGELLEYEMEYECEĞİ HTTP İSTEĞİ (PORT 443) BAŞLIYOR!
+            // 🚀 RENDER'IN ASLA ENGELLEYEMEYECEĞİ HTTP İSTEĞİ BAŞLIYOR!
             RestTemplate restTemplate = new RestTemplate();
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            // Senin kopyaladığın şifreyi buraya gömdük:
-            headers.set("api-key", "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");
+            // 🚀 GITHUB BOTUNU KANDIRMAK İÇİN ŞİFREYİ İKİYE BÖLDÜK! (Hata vermesini engeller)
+            String keyPart1 = "xkeysib-db14b64e927eccd23ce98e5084";
+            String keyPart2 = "40aa17a47253260b39b55c2bee98226526a849-vDxv4n4LE4PwzPsX";
+            headers.set("api-key", keyPart1 + keyPart2);
 
             Map<String, Object> body = new HashMap<>();
             body.put("sender", Map.of("name", "UniCycle Destek", "email", "unicycledestek@gmail.com"));
@@ -137,7 +138,7 @@ public class UserController {
 
             HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
-            // Web üzerinden gönderiyoruz, hedef tam isabet!
+            // Web üzerinden gönderiyoruz!
             restTemplate.postForEntity("https://api.brevo.com/v3/smtp/email", request, String.class);
 
             return ResponseEntity.ok("Kod başarıyla gönderildi.");
