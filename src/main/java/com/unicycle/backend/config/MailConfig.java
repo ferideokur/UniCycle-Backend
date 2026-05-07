@@ -15,8 +15,8 @@ public class MailConfig {
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
         mailSender.setHost("smtp.gmail.com");
 
-        // 🚀 RENDER'IN ENGELİNİ AŞAN PORT: 587 yerine 465 yapıyoruz!
-        mailSender.setPort(465);
+        // 🚀 SENİN DOĞRU OLAN, ÇALIŞAN ORİJİNAL AYARIN!
+        mailSender.setPort(587);
 
         // Senin açtığın profesyonel mail ve aldığımız uygulama şifresi
         mailSender.setUsername("unicycledestek@gmail.com");
@@ -26,11 +26,8 @@ public class MailConfig {
         Properties props = mailSender.getJavaMailProperties();
         props.put("mail.transport.protocol", "smtp");
         props.put("mail.smtp.auth", "true");
-
-        // 🚀 PORT 465 İÇİN STARTTLS DEĞİL, DİREKT SSL KULLANMALIYIZ:
-        props.put("mail.smtp.ssl.enable", "true");
-
-        props.put("mail.debug", "true"); // Konsolda mailin gittiğini canlı izlemek için
+        props.put("mail.smtp.starttls.enable", "true"); // 🚀 GOOGLE'IN ASIL İSTEDİĞİ STARTTLS!
+        props.put("mail.debug", "true");
 
         return mailSender;
     }
