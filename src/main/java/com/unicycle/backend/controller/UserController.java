@@ -319,12 +319,20 @@ public class UserController {
         }
     }
 
+    // 🚀 BÜYÜK KURTARICI METOT 🚀
     @GetMapping("/fix-db")
     public ResponseEntity<?> fixDatabase() {
         try {
+            // PostgreSQL'e eksik kolonu ZORLA ekletiyoruz!
+            try {
+                jdbcTemplate.execute("ALTER TABLE users ADD COLUMN document_base64 TEXT;");
+            } catch (Exception ignored) {
+                // Eğer kolon zaten eklendiyse burası sessizce geçer, hata vermez.
+            }
+
             jdbcTemplate.execute("UPDATE users SET status = 'ACTIVE' WHERE status IS NULL");
             jdbcTemplate.execute("UPDATE users SET role = 'USER' WHERE role IS NULL");
-            return ResponseEntity.ok("✅ VERİTABANI ONARILDI!");
+            return ResponseEntity.ok("✅ VERİTABANI ONARILDI, EKSİK KOLON EKLENDİ VE KİLİT AÇILDI!");
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Hata oluştu: " + e.getMessage());
         }
