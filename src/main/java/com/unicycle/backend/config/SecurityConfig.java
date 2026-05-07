@@ -2,6 +2,8 @@ package com.unicycle.backend.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -18,16 +20,19 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                // 🔥 Spring Security'e "CORS Nükleer Silahını" tanıttığımız yer:
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable()) // POST işlemlerini engellemesini durdur
                 .authorizeHttpRequests(auth -> auth
                         // BÜTÜN ÖNCÜ (OPTIONS) İSTEKLERİNE KESİN İZİN VER!
-                        .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // Diğer tüm isteklere şimdilik izin ver
                         .anyRequest().permitAll()
                 );
         return http.build();
     }
 
+    // 🚀 RENDER'I ÇÖKMEKTEN KURTARAN EKSİK PARÇA BURASI!
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

@@ -4,7 +4,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
-
 import java.util.Properties;
 
 @Configuration
@@ -16,16 +15,17 @@ public class MailConfig {
         mailSender.setHost("smtp.gmail.com");
         mailSender.setPort(587);
 
-        // Senin açtığın profesyonel mail ve aldığımız uygulama şifresi
         mailSender.setUsername("unicycledestek@gmail.com");
-        mailSender.setPassword("cikeatsrwgokaicc");
+        mailSender.setPassword("BURAYA_GOOGLE_UYGULAMA_SIFRENIZI_YAZIN");
 
-        // Google'ın istediği güvenlik ayarları
         Properties props = mailSender.getJavaMailProperties();
         props.put("mail.transport.protocol", "smtp");
         props.put("mail.smtp.auth", "true");
         props.put("mail.smtp.starttls.enable", "true");
-        props.put("mail.debug", "true"); // Konsolda mailin gittiğini canlı izlemek için
+        props.put("mail.debug", "true");
+        props.put("mail.smtp.connectiontimeout", "5000");
+        props.put("mail.smtp.timeout", "5000");
+        props.put("mail.smtp.writetimeout", "5000");
 
         return mailSender;
     }
