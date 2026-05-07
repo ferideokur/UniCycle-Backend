@@ -91,7 +91,7 @@ public class UserController {
         }
     }
 
-    // 🚀🚀 ŞİFREMİ UNUTTUM: MAİL ÇÖKSE BİLE LOGA YAZAN ÖLÜMSÜZ METOT 🚀🚀
+    // 🚀🚀 ŞİFREMİ UNUTTUM: PROFESYONEL VE GİZLİ KASALI MAİL METODU 🚀🚀
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestParam("email") String email) {
         try {
@@ -108,34 +108,46 @@ public class UserController {
             user.setOtpCode(otp);
             userRepository.save(user);
 
-            // 🚀 B PLANI: MAİL GİTMESE BİLE KODU RENDER EKRANINA KABAK GİBİ YAZDIRIYORUZ!
+            // 🚀 B PLANI: MAİL GECİKİRSE DİYE KODU LOGLARA YAZDIRIYORUZ!
             System.out.println("\n\n=======================================================");
             System.out.println("🔔 DİKKAT! " + email + " İÇİN ŞİFRE SIFIRLAMA KODU: " + otp);
             System.out.println("=======================================================\n\n");
 
-            // 🚀 A PLANI: BREVO API İLE MAİL ATMAYI DENE (Çökmeyi engellemek için Try-Catch içine aldım)
+            // 🚀 A PLANI: BREVO API İLE MAİL ATMAYI DENE
             try {
+                // 🔒 ŞİFREYİ KODDAN DEĞİL, RENDER'IN GİZLİ KASASINDAN ÇEKİYORUZ!
+                String apiKey = System.getenv("BREVO_API_KEY");
+
+                if (apiKey == null || apiKey.trim().isEmpty()) {
+                    throw new RuntimeException("BREVO_API_KEY Render'ın kasasında bulunamadı!");
+                }
+
                 RestTemplate restTemplate = new RestTemplate();
                 HttpHeaders headers = new HttpHeaders();
                 headers.setContentType(MediaType.APPLICATION_JSON);
-
-                String keyPart1 = "xkeysib-db14b64e927eccd23ce98e5084";
-                String keyPart2 = "40aa17a47253260b39b55c2bee98226526a849-vDxv4n4LE4PwzPsX";
-                headers.set("api-key", keyPart1 + keyPart2);
+                headers.set("api-key", apiKey); // KASADAN GELEN ŞİFRE
 
                 Map<String, Object> body = new HashMap<>();
                 body.put("sender", Map.of("name", "UniCycle Destek", "email", "unicycledestek@gmail.com"));
                 body.put("to", List.of(Map.of("email", email, "name", user.getFullName())));
                 body.put("subject", "UniCycle - Şifre Sıfırlama Kodu");
-                body.put("htmlContent", "<div style='text-align: center;'><h2>Merhaba " + user.getFullName() + "</h2><h1>" + otp + "</h1></div>");
+                body.put("htmlContent", "<div style='font-family: Arial, sans-serif; text-align: center; padding: 30px; background-color: #f8f9fa; border-radius: 15px;'>"
+                        + "<h2 style='color: #0f2e36;'>Merhaba " + user.getFullName() + ",</h2>"
+                        + "<p style='color: #475569; font-size: 16px;'>Hesabınızın şifresini sıfırlamak için gereken doğrulama kodunuz aşağıdadır:</p>"
+                        + "<div style='background-color: #ffffff; padding: 15px; border-radius: 10px; display: inline-block; margin: 20px 0; border: 2px dashed #20B2AA;'>"
+                        + "<h1 style='color: #20B2AA; font-size: 36px; letter-spacing: 8px; margin: 0;'>" + otp + "</h1>"
+                        + "</div>"
+                        + "<p style='color: #475569; font-size: 14px;'>Bu kodu kimseyle paylaşmayın. Eğer bu işlemi siz yapmadıysanız bu e-postayı görmezden gelebilirsiniz.</p>"
+                        + "<br><p style='color: #94a3b8; font-size: 12px;'>Sevgiler,<br><b>UniCycle Destek Ekibi</b></p>"
+                        + "</div>");
 
                 HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
                 restTemplate.postForEntity("https://api.brevo.com/v3/smtp/email", request, String.class);
-                System.out.println("✅ Brevo API ile mail başarıyla gönderildi!");
+                System.out.println("✅ Brevo API ile mail başarıyla GÖNDERİLDİ!");
 
             } catch (Exception apiError) {
-                // BREVO HATA VERİRSE SİSTEMİ ÇÖKERTME, SADECE LOGA YAZ! (Vercel 200 OK alacak)
-                System.out.println("❌ Brevo API Maili Gönderemedi (Ama kod oluşturuldu): " + apiError.getMessage());
+                // BREVO HATA VERİRSE SİSTEMİ ÇÖKERTME, SADECE LOGA YAZ!
+                System.out.println("❌ Brevo API Maili Gönderemedi: " + apiError.getMessage());
             }
 
             // NE OLURSA OLSUN KULLANICIYA BAŞARILI MESAJI GİDECEK!
