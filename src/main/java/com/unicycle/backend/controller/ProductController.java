@@ -8,13 +8,16 @@ import com.unicycle.backend.repository.UserRepository;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/products")
-// VERCEL VIP BİLETİ ZATEN BURADAYDI!
-@CrossOrigin(origins = "https://uni-cycle-seven.vercel.app")
+// 🚀 VIP BİLETİ: Hem Vercel Hem Bilgisayarın İçin!
+@CrossOrigin(origins = {"https://uni-cycle-seven.vercel.app", "http://localhost:3000"})
 public class ProductController {
 
     private final ProductRepository productRepository;
@@ -25,7 +28,7 @@ public class ProductController {
         this.userRepository = userRepository;
     }
 
-    // CREATE PRODUCT
+    // 1️⃣ CREATE PRODUCT (İLAN OLUŞTURMA)
     @PostMapping
     public ResponseEntity<?> createProduct(@RequestBody ProductRequestDTO request) {
         try {
@@ -48,12 +51,10 @@ public class ProductController {
             newProduct.setPrice(request.getPrice());
             newProduct.setDescription(request.getDescription());
             newProduct.setPhotosBase64(request.getPhotosBase64());
-
-            // 🌟 YENİ: Üniversite bilgisini de ilana ekleyip kaydediyoruz
             newProduct.setUniversity(request.getUniversity());
 
             Product savedProduct = productRepository.save(newProduct);
-            return ResponseEntity.ok(savedProduct);
+            return ResponseEntity.ok(mapProductToSafeObject(savedProduct));
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -61,36 +62,51 @@ public class ProductController {
         }
     }
 
-    // GET ALL PRODUCTS (🌟 YENİ: Üniversite Filtresi Eklendi)
+    // 2️⃣ GET ALL PRODUCTS (🚀 ÇÖKMEYİ ENGELLEYEN SİSTEM BURADA 🚀)
     @GetMapping
-    public ResponseEntity<List<Product>> getProducts(@RequestParam(value = "university", required = false) String university) {
-        List<Product> products;
-
-        // Eğer URL'den ?university=Piri Reis gibi bir filtre gelmişse sadece onları getir
-        if (university != null && !university.trim().isEmpty()) {
-            products = productRepository.findByUniversityIgnoreCase(university.trim());
-        } else {
-            // Hiçbir filtre gelmemişse tüm ilanları getir (Eski çalışma mantığı bozulmaz)
-            products = productRepository.findAll();
-        }
-
-        return ResponseEntity.ok(products);
-    }
-
-    // 🔍 SEARCH PRODUCTS ENDPOINT
-    @GetMapping("/search")
-    public ResponseEntity<List<Product>> searchProducts(@RequestParam("q") String query) {
+    public ResponseEntity<?> getProducts(@RequestParam(value = "university", required = false) String university) {
         try {
-            // Searches both titles and categories
-            List<Product> results = productRepository.findByTitleContainingIgnoreCaseOrCategoryContainingIgnoreCase(query, query);
-            return ResponseEntity.ok(results);
+            List<Product> products;
+
+            if (university != null && !university.trim().isEmpty()) {
+                products = productRepository.findByUniversityIgnoreCase(university.trim());
+            } else {
+                products = productRepository.findAll();
+            }
+
+            // Java'nın (Jackson) kafası karışıp 500 hatası vermesin diye verileri ELLERİMİZLE paketliyoruz!
+            List<Map<String, Object>> safeProducts = new ArrayList<>();
+            for (Product p : products) {
+                safeProducts.add(mapProductToSafeObject(p));
+            }
+
+            return ResponseEntity.ok(safeProducts);
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.status(500).build();
+            return ResponseEntity.status(500).body("Backend Hatası: İlanlar çekilirken Java çöktü -> " + e.getMessage());
         }
     }
 
-    // DELETE PRODUCT
+    // 3️⃣ SEARCH PRODUCTS (ARAMA)
+    @GetMapping("/search")
+    public ResponseEntity<?> searchProducts(@RequestParam("q") String query) {
+        try {
+            List<Product> results = productRepository.findByTitleContainingIgnoreCaseOrCategoryContainingIgnoreCase(query, query);
+
+            // Arama sonuçlarını da güvenli pakete alıyoruz
+            List<Map<String, Object>> safeProducts = new ArrayList<>();
+            for (Product p : results) {
+                safeProducts.add(mapProductToSafeObject(p));
+            }
+
+            return ResponseEntity.ok(safeProducts);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("Backend Hatası: Arama yaparken çöktü -> " + e.getMessage());
+        }
+    }
+
+    // 4️⃣ DELETE PRODUCT (SİLME)
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
         try {
@@ -103,5 +119,30 @@ public class ProductController {
             e.printStackTrace();
             return ResponseEntity.status(500).body("Server Error: " + e.getMessage());
         }
+    }
+
+    // 🛠 SİHİRLİ PAKETLEYİCİ METOT (GİZLİ KAHRAMAN)
+    // Sadece Frontend'in ihtiyaç duyduğu temiz bilgileri alır, sonsuz döngüleri engeller!
+    private Map<String, Object> mapProductToSafeObject(Product p) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("id", p.getId());
+        map.put("title", p.getTitle());
+        map.put("category", p.getCategory());
+        map.put("itemCondition", p.getItemCondition());
+        map.put("priceType", p.getPriceType());
+        map.put("price", p.getPrice());
+        map.put("description", p.getDescription());
+        map.put("photosBase64", p.getPhotosBase64());
+        map.put("university", p.getUniversity());
+
+        // Kullanıcının güvenli bilgilerini (şifre vs. olmadan) temiz bir şekilde içine koy
+        if (p.getUser() != null) {
+            Map<String, Object> userMap = new HashMap<>();
+            userMap.put("id", p.getUser().getId());
+            userMap.put("fullName", p.getUser().getFullName());
+            userMap.put("university", p.getUser().getUniversity());
+            map.put("user", userMap);
+        }
+        return map;
     }
 }
