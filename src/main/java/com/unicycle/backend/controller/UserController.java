@@ -10,10 +10,9 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import org.springframework.web.client.RestTemplate;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.MediaType;
+// 🚀 GMAIL İÇİN GEREKLİ KÜTÜPHANELER GERİ GELDİ
+import org.springframework.mail.SimpleMailMessage;
+import org.springframework.mail.javamail.JavaMailSender;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -31,13 +30,15 @@ public class UserController {
     private final UserRepository userRepository;
     private final JdbcTemplate jdbcTemplate;
     private final PasswordEncoder passwordEncoder;
+    private final JavaMailSender mailSender; // 🚀 GMAIL SİSTEMİ EKLENDİ
 
     @Autowired
-    public UserController(UserService userService, UserRepository userRepository, JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder) {
+    public UserController(UserService userService, UserRepository userRepository, JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder, JavaMailSender mailSender) {
         this.userService = userService;
         this.userRepository = userRepository;
         this.jdbcTemplate = jdbcTemplate;
         this.passwordEncoder = passwordEncoder;
+        this.mailSender = mailSender; // 🚀 BAŞLATILDI
     }
 
     // 1️⃣ KULLANICI KAYDI
@@ -91,7 +92,7 @@ public class UserController {
         }
     }
 
-    // 🚀🚀 ŞİFREMİ UNUTTUM: PROFESYONEL VE GİZLİ KASALI MAİL METODU 🚀🚀
+    // 🚀🚀 ŞİFREMİ UNUTTUM: KUSURSUZ GMAIL GÖNDERİMİ 🚀🚀
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestParam("email") String email) {
         try {
@@ -108,51 +109,23 @@ public class UserController {
             user.setOtpCode(otp);
             userRepository.save(user);
 
-            // 🚀 B PLANI: MAİL GECİKİRSE DİYE KODU LOGLARA YAZDIRIYORUZ!
-            System.out.println("\n\n=======================================================");
-            System.out.println("🔔 DİKKAT! " + email + " İÇİN ŞİFRE SIFIRLAMA KODU: " + otp);
-            System.out.println("=======================================================\n\n");
+            // 🚀 GOOGLE (GMAIL) ÜZERİNDEN MAİLİ ANINDA UÇURUYORUZ
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom("unicycledestek@gmail.com");
+            message.setTo(email);
+            message.setSubject("UniCycle - Şifre Sıfırlama Kodu");
+            message.setText("Merhaba " + user.getFullName() + ",\n\n"
+                    + "Hesabınızın şifresini sıfırlamak için gereken doğrulama kodunuz:\n\n"
+                    + "👉 " + otp + " 👈\n\n"
+                    + "Bu kodu kimseyle paylaşmayın. Eğer bu işlemi siz yapmadıysanız bu mesajı görmezden gelebilirsiniz.\n\n"
+                    + "Sevgiler,\nUniCycle Destek Ekibi");
 
-            // 🚀 A PLANI: BREVO API İLE MAİL ATMAYI DENE
-            try {
-                // 🔒 ŞİFREYİ KODDAN DEĞİL, RENDER'IN GİZLİ KASASINDAN ÇEKİYORUZ!
-                String apiKey = System.getenv("BREVO_API_KEY");
+            mailSender.send(message);
+            System.out.println("✅ Gmail ile kod başarıyla gönderildi: " + email);
 
-                if (apiKey == null || apiKey.trim().isEmpty()) {
-                    throw new RuntimeException("BREVO_API_KEY Render'ın kasasında bulunamadı!");
-                }
-
-                RestTemplate restTemplate = new RestTemplate();
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_JSON);
-                headers.set("api-key", apiKey); // KASADAN GELEN ŞİFRE
-
-                Map<String, Object> body = new HashMap<>();
-                body.put("sender", Map.of("name", "UniCycle Destek", "email", "unicycledestek@gmail.com"));
-                body.put("to", List.of(Map.of("email", email, "name", user.getFullName())));
-                body.put("subject", "UniCycle - Şifre Sıfırlama Kodu");
-                body.put("htmlContent", "<div style='font-family: Arial, sans-serif; text-align: center; padding: 30px; background-color: #f8f9fa; border-radius: 15px;'>"
-                        + "<h2 style='color: #0f2e36;'>Merhaba " + user.getFullName() + ",</h2>"
-                        + "<p style='color: #475569; font-size: 16px;'>Hesabınızın şifresini sıfırlamak için gereken doğrulama kodunuz aşağıdadır:</p>"
-                        + "<div style='background-color: #ffffff; padding: 15px; border-radius: 10px; display: inline-block; margin: 20px 0; border: 2px dashed #20B2AA;'>"
-                        + "<h1 style='color: #20B2AA; font-size: 36px; letter-spacing: 8px; margin: 0;'>" + otp + "</h1>"
-                        + "</div>"
-                        + "<p style='color: #475569; font-size: 14px;'>Bu kodu kimseyle paylaşmayın. Eğer bu işlemi siz yapmadıysanız bu e-postayı görmezden gelebilirsiniz.</p>"
-                        + "<br><p style='color: #94a3b8; font-size: 12px;'>Sevgiler,<br><b>UniCycle Destek Ekibi</b></p>"
-                        + "</div>");
-
-                HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
-                restTemplate.postForEntity("https://api.brevo.com/v3/smtp/email", request, String.class);
-                System.out.println("✅ Brevo API ile mail başarıyla GÖNDERİLDİ!");
-
-            } catch (Exception apiError) {
-                // BREVO HATA VERİRSE SİSTEMİ ÇÖKERTME, SADECE LOGA YAZ!
-                System.out.println("❌ Brevo API Maili Gönderemedi: " + apiError.getMessage());
-            }
-
-            // NE OLURSA OLSUN KULLANICIYA BAŞARILI MESAJI GİDECEK!
             return ResponseEntity.ok("Kod başarıyla oluşturuldu.");
         } catch (Exception e) {
+            System.out.println("❌ Mail gönderim hatası: " + e.getMessage());
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("İşlem hatası: " + e.getMessage());
         }
     }
