@@ -8,9 +8,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.security.crypto.password.PasswordEncoder; // 🚀 ŞİFRELEYİCİ İMPORT EDİLDİ
+import org.springframework.security.crypto.password.PasswordEncoder;
+
+// 🚀 BREVO API İÇİN GEREKLİ YENİ KÜTÜPHANELER
+import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.MediaType;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -21,40 +25,34 @@ import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/users")
-// 🚀 CORS: Hem Vercel hem localhost için izinli
 @CrossOrigin(origins = {"https://uni-cycle-seven.vercel.app", "http://localhost:3000"})
 public class UserController {
 
     private final UserService userService;
     private final UserRepository userRepository;
     private final JdbcTemplate jdbcTemplate;
-    private final JavaMailSender mailSender;
-    private final PasswordEncoder passwordEncoder; // 🚀 ŞİFRELEYİCİ EKLENDİ
+    private final PasswordEncoder passwordEncoder;
 
+    // 🚀 DİKKAT: JavaMailSender TAMAMEN KALDIRILDI! ARTIK BREVO API VAR!
     @Autowired
-    public UserController(UserService userService, UserRepository userRepository, JdbcTemplate jdbcTemplate, JavaMailSender mailSender, PasswordEncoder passwordEncoder) {
+    public UserController(UserService userService, UserRepository userRepository, JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder) {
         this.userService = userService;
         this.userRepository = userRepository;
         this.jdbcTemplate = jdbcTemplate;
-        this.mailSender = mailSender;
-        this.passwordEncoder = passwordEncoder; // 🚀 ŞİFRELEYİCİ BAŞLATILDI
+        this.passwordEncoder = passwordEncoder;
     }
 
     // 1️⃣ KULLANICI KAYDI (🚀 ÇİFTE KİLİT YÖNTEMİ)
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
         try {
-            // KİLİT 1: Kaydetmeden önce PENDING yapıyoruz
             user.setStatus("PENDING");
             user.setRole("USER");
-
-            // Arka plandaki inatçı servise gönderiyoruz
             User savedUser = userService.registerUser(user);
 
-            // KİLİT 2: Eğer servis inat edip ACTIVE yaptıysa, arkasından gidip ZORLA eziyoruz!
             savedUser.setStatus("PENDING");
             savedUser.setRole("USER");
-            userRepository.save(savedUser); // Veritabanına çiviliyoruz!
+            userRepository.save(savedUser);
 
             return ResponseEntity.ok("Success: " + savedUser.getEmail());
         } catch (Exception e) {
@@ -62,7 +60,7 @@ public class UserController {
         }
     }
 
-    // 2️⃣ GİRİŞ YAP (LOGIN) - 🚀 PENDING ENGELİ KALDIRILDI!
+    // 2️⃣ GİRİŞ YAP (LOGIN)
     @PostMapping("/login")
     public ResponseEntity<?> loginUser(@RequestBody Map<String, String> loginData) {
         try {
@@ -71,7 +69,6 @@ public class UserController {
 
             User user = userService.loginUser(email, password);
 
-            // 🚫 GÜVENLİK DUVARI: SADECE Yasaklı/Kovulmuş (SUSPENDED) olanları engelliyoruz!
             if ("SUSPENDED".equals(user.getStatus())) {
                 return ResponseEntity.status(403).body("Hesabınız yönetici tarafından askıya alınmıştır. Lütfen iletişime geçin.");
             }
@@ -87,7 +84,7 @@ public class UserController {
             userData.put("coverImage", user.getCoverImage());
             userData.put("coverY", user.getCoverY());
             userData.put("role", user.getRole());
-            userData.put("status", user.getStatus()); // Statüsünü Frontend'e gönderiyoruz (ACTIVE veya PENDING)
+            userData.put("status", user.getStatus());
             userData.put("message", "Login Successful");
 
             return ResponseEntity.ok(userData);
@@ -96,11 +93,10 @@ public class UserController {
         }
     }
 
-    // 🚀🚀 ŞİFREMİ UNUTTUM AŞAMA 1: MAİLE KOD (OTP) GÖNDERME 🚀🚀
+    // 🚀🚀 ŞİFREMİ UNUTTUM AŞAMA 1: EFSANE BREVO API ENTEGRASYONU 🚀🚀
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestParam("email") String email) {
         try {
-            // Kullanıcıyı veritabanında ara
             Optional<User> userOptional = userRepository.findByEmail(email);
 
             if (userOptional.isEmpty()) {
@@ -112,30 +108,45 @@ public class UserController {
             // 6 haneli rastgele kod oluştur
             String otp = String.format("%06d", new java.util.Random().nextInt(999999));
 
-            // Kodu veritabanına kaydet
             user.setOtpCode(otp);
             userRepository.save(user);
 
-            // Maili hazırla ve gönder
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom("unicycledestek@gmail.com");
-            message.setTo(email);
-            message.setSubject("UniCycle - Şifre Sıfırlama Kodu");
-            message.setText("Merhaba " + user.getFullName() + ",\n\n"
-                    + "Hesabınızın şifresini sıfırlamak için gereken doğrulama kodunuz:\n\n"
-                    + "👉 " + otp + " 👈\n\n"
-                    + "Bu kodu kimseyle paylaşmayın. Eğer bu işlemi siz yapmadıysanız bu mesajı görmezden gelebilirsiniz.\n\n"
-                    + "Sevgiler,\nUniCycle Destek Ekibi");
+            // 🚀 RENDER'IN ASLA ENGELLEYEMEYECEĞİ HTTP İSTEĞİ (PORT 443) BAŞLIYOR!
+            RestTemplate restTemplate = new RestTemplate();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
 
-            mailSender.send(message);
+            // Senin kopyaladığın şifreyi buraya gömdük:
+            headers.set("api-key", "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");
+
+            Map<String, Object> body = new HashMap<>();
+            body.put("sender", Map.of("name", "UniCycle Destek", "email", "unicycledestek@gmail.com"));
+            body.put("to", List.of(Map.of("email", email, "name", user.getFullName())));
+            body.put("subject", "UniCycle - Şifre Sıfırlama Kodu");
+
+            // Tasarımlı, çok şık bir HTML Mail formatı:
+            body.put("htmlContent", "<div style='font-family: Arial, sans-serif; text-align: center; padding: 30px; background-color: #f8f9fa; border-radius: 15px;'>"
+                    + "<h2 style='color: #0f2e36;'>Merhaba " + user.getFullName() + ",</h2>"
+                    + "<p style='color: #475569; font-size: 16px;'>Hesabınızın şifresini sıfırlamak için gereken doğrulama kodunuz aşağıdadır:</p>"
+                    + "<div style='background-color: #ffffff; padding: 15px; border-radius: 10px; display: inline-block; margin: 20px 0; border: 2px dashed #20B2AA;'>"
+                    + "<h1 style='color: #20B2AA; font-size: 36px; letter-spacing: 8px; margin: 0;'>" + otp + "</h1>"
+                    + "</div>"
+                    + "<p style='color: #475569; font-size: 14px;'>Bu kodu kimseyle paylaşmayın. Eğer bu işlemi siz yapmadıysanız bu e-postayı görmezden gelebilirsiniz.</p>"
+                    + "<br><p style='color: #94a3b8; font-size: 12px;'>Sevgiler,<br><b>UniCycle Destek Ekibi</b></p>"
+                    + "</div>");
+
+            HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
+
+            // Web üzerinden gönderiyoruz, hedef tam isabet!
+            restTemplate.postForEntity("https://api.brevo.com/v3/smtp/email", request, String.class);
 
             return ResponseEntity.ok("Kod başarıyla gönderildi.");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Mail gönderilirken hata oluştu: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("API hatası oluştu: " + e.getMessage());
         }
     }
 
-    // 🚀🚀 ŞİFREMİ UNUTTUM AŞAMA 2: KODU DOĞRULAYIP YENİ ŞİFREYİ KAYDETME 🚀🚀
+    // 🚀🚀 ŞİFREMİ UNUTTUM AŞAMA 2: KODU DOĞRULAYIP YENİ ŞİFREYİ KAYDETME
     @PostMapping("/reset-password")
     public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> payload) {
         try {
@@ -151,18 +162,13 @@ public class UserController {
 
             User user = userOptional.get();
 
-            // Güvenlik Kontrolü: Gelen kod ile veritabanındaki kod aynı mı?
             if (user.getOtpCode() != null && user.getOtpCode().equals(otpCode)) {
-
-                // 🚀 HATA BURADAYDI! YENİ ŞİFRE ARTIK VERİTABANINA ŞİFRELENEREK KAYDEDİLİYOR 🚀
                 user.setPassword(passwordEncoder.encode(newPassword));
-                user.setOtpCode(null); // Kodu kullandıktan sonra güvenlik için SIFIRLA!
-
+                user.setOtpCode(null);
                 userRepository.save(user);
 
                 return ResponseEntity.ok("Şifre başarıyla güncellendi.");
             } else {
-                // Kod hatalıysa veya yoksa engelle!
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Geçersiz doğrulama kodu.");
             }
         } catch (Exception e) {
@@ -193,19 +199,15 @@ public class UserController {
         }
     }
 
-    // 4️⃣ PROFİL GÖRÜNTÜLEME (🚀🚀 TAM OTOMATİK SİSTEM 🚀🚀)
+    // 4️⃣ PROFİL GÖRÜNTÜLEME
     @GetMapping("/{id}")
     public ResponseEntity<?> getUserProfile(@PathVariable Long id) {
         try {
             Optional<User> userOpt = userRepository.findById(id);
             if (userOpt.isPresent()) {
                 User user = userOpt.get();
-                // Güvenlik için şifre ve doğrulama kodlarını asla göndermiyoruz!
                 user.setPassword(null);
                 user.setOtpCode(null);
-
-                // Spring Boot (Jackson) kullanıcının içindeki belge (documentUrl, file vb.)
-                // dahil TÜM bilgileri otomatik olarak Frontend'e yollayacak!
                 return ResponseEntity.ok(user);
             }
             return ResponseEntity.notFound().build();
@@ -323,11 +325,9 @@ public class UserController {
     @GetMapping("/fix-db")
     public ResponseEntity<?> fixDatabase() {
         try {
-            // PostgreSQL'e eksik kolonu ZORLA ekletiyoruz!
             try {
                 jdbcTemplate.execute("ALTER TABLE users ADD COLUMN document_base64 TEXT;");
             } catch (Exception ignored) {
-                // Eğer kolon zaten eklendiyse burası sessizce geçer, hata vermez.
             }
 
             jdbcTemplate.execute("UPDATE users SET status = 'ACTIVE' WHERE status IS NULL");
