@@ -8,7 +8,7 @@ ENV LANG=C.UTF-8
 COPY . .
 
 # Testleri hem derlemeyi hem çalıştırmayı atlıyoruz (En garantisi budur)
-RUN mvn clean package -Dmaven.test.skip=true
+RUN mvn clean package -DskipTests
 
 # 2. Aşama: Run
 FROM eclipse-temurin:21-jdk-jammy
