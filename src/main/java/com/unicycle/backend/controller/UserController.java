@@ -10,9 +10,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import org.springframework.mail.SimpleMailMessage;
-import org.springframework.mail.javamail.JavaMailSender;
-
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -29,88 +26,14 @@ public class UserController {
     private final UserRepository userRepository;
     private final JdbcTemplate jdbcTemplate;
     private final PasswordEncoder passwordEncoder;
-    private final JavaMailSender mailSender; // 🚀 GMAIL İÇİN OTOMATİK SİSTEM
 
     @Autowired
-    public UserController(UserService userService, UserRepository userRepository, JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder, JavaMailSender mailSender) {
+    public UserController(UserService userService, UserRepository userRepository, JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder) {
         this.userService = userService;
         this.userRepository = userRepository;
         this.jdbcTemplate = jdbcTemplate;
         this.passwordEncoder = passwordEncoder;
-        this.mailSender = mailSender;
     }
-
-    // 🚀 ŞİFREMİ UNUTTUM: TRENDYOL MANTIĞI İLE MAİL GÖNDERİMİ
-    @PostMapping("/forgot-password")
-    public ResponseEntity<?> forgotPassword(@RequestParam("email") String email) {
-        try {
-            Optional<User> userOptional = userRepository.findByEmail(email);
-
-            if (userOptional.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Kullanıcı bulunamadı");
-            }
-
-            User user = userOptional.get();
-            // 6 haneli rastgele OTP kodu
-            String otp = String.format("%06d", new java.util.Random().nextInt(999999));
-            user.setOtpCode(otp);
-            userRepository.save(user);
-
-            // Maili hazırlıyoruz
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom("unicycledestek@gmail.com");
-            message.setTo(email);
-            message.setSubject("UniCycle - Şifre Sıfırlama Kodu");
-            message.setText("Merhaba " + user.getFullName() + ",\n\n"
-                    + "UniCycle hesabınızın şifresini sıfırlamak için doğrulama kodunuz aşağıdadır:\n\n"
-                    + "👉 " + otp + " 👈\n\n"
-                    + "Eğer bu talebi siz yapmadıysanız lütfen bu e-postayı görmezden gelin.\n\n"
-                    + "Güvenli sürüşler,\nUniCycle Destek Ekibi");
-
-            // Maili uçur! (application.properties'deki ayarlara göre gider)
-            mailSender.send(message);
-
-            return ResponseEntity.ok("Doğrulama kodu başarıyla e-postanıza gönderildi.");
-
-        } catch (Exception e) {
-            e.printStackTrace(); // Hatayı loglara yazdır (Görmemiz için)
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Mail gönderilemedi. Sunucu hatası: " + e.getMessage());
-        }
-    }
-
-    // 🚀 DOĞRULAMA KODUNU KONTROL ET VE ŞİFREYİ SIFIRLA
-    @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> payload) {
-        try {
-            String email = payload.get("email");
-            String otpCode = payload.get("otpCode");
-            String newPassword = payload.get("newPassword");
-
-            Optional<User> userOptional = userRepository.findByEmail(email);
-
-            if (userOptional.isEmpty()) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Kullanıcı bulunamadı");
-            }
-
-            User user = userOptional.get();
-
-            // Eğer kod doğruysa şifreyi hashle ve kaydet
-            if (user.getOtpCode() != null && user.getOtpCode().equals(otpCode)) {
-                user.setPassword(passwordEncoder.encode(newPassword));
-                user.setOtpCode(null); // Kullanılan kodu sıfırla
-                userRepository.save(user);
-
-                return ResponseEntity.ok("Şifreniz başarıyla güncellendi.");
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Geçersiz veya süresi dolmuş doğrulama kodu.");
-            }
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("İşlem sırasında hata oluştu: " + e.getMessage());
-        }
-    }
-
-    // --- DİĞER STANDART METOTLAR (DEĞİŞTİRİLMEDİ) ---
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody User user) {
@@ -118,9 +41,11 @@ public class UserController {
             user.setStatus("PENDING");
             user.setRole("USER");
             User savedUser = userService.registerUser(user);
+
             savedUser.setStatus("PENDING");
             savedUser.setRole("USER");
             userRepository.save(savedUser);
+
             return ResponseEntity.ok("Success: " + savedUser.getEmail());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Registration failed: " + e.getMessage());
@@ -132,6 +57,7 @@ public class UserController {
         try {
             String email = loginData.get("email");
             String password = loginData.get("password");
+
             User user = userService.loginUser(email, password);
 
             if ("SUSPENDED".equals(user.getStatus())) {
@@ -158,10 +84,75 @@ public class UserController {
         }
     }
 
+    // 🚀🚀 MAİLİ VERCEL'İN (FRONTEND) ATMASI İÇİN KODU SADECE ÜRETİP YOLLAYAN METOT 🚀🚀
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestParam("email") String email) {
+        try {
+            Optional<User> userOptional = userRepository.findByEmail(email);
+
+            if (userOptional.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Kullanıcı bulunamadı");
+            }
+
+            User user = userOptional.get();
+            // 6 haneli kod üret
+            String otp = String.format("%06d", new java.util.Random().nextInt(999999));
+
+            // Kodu veritabanına kaydet
+            user.setOtpCode(otp);
+            userRepository.save(user);
+
+            System.out.println("🔔 KOD OLUŞTURULDU: " + otp);
+
+            // 🚀 RENDER MAİL ATAMADIĞI İÇİN KODU FRONTEND'E (VERCEL'E) YOLLUYORUZ
+            // Maili Vercel (Frontend) gönderecek!
+            Map<String, String> responseData = new HashMap<>();
+            responseData.put("otp", otp);
+            responseData.put("fullName", user.getFullName());
+            responseData.put("email", user.getEmail());
+
+            return ResponseEntity.ok(responseData);
+
+        } catch (Exception e) {
+            System.out.println("❌ İŞLEM HATASI: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("İşlem hatası: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> payload) {
+        try {
+            String email = payload.get("email");
+            String otpCode = payload.get("otpCode");
+            String newPassword = payload.get("newPassword");
+
+            Optional<User> userOptional = userRepository.findByEmail(email);
+
+            if (userOptional.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Kullanıcı bulunamadı");
+            }
+
+            User user = userOptional.get();
+
+            if (user.getOtpCode() != null && user.getOtpCode().equals(otpCode)) {
+                user.setPassword(passwordEncoder.encode(newPassword));
+                user.setOtpCode(null);
+                userRepository.save(user);
+
+                return ResponseEntity.ok("Şifre başarıyla güncellendi.");
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Geçersiz doğrulama kodu.");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("İşlem sırasında hata oluştu: " + e.getMessage());
+        }
+    }
+
     @GetMapping("/search")
     public ResponseEntity<?> searchUsers(@RequestParam("q") String query) {
         try {
             List<User> users = userRepository.findByFullNameContainingIgnoreCase(query);
+
             List<Map<String, Object>> response = users.stream().map(u -> {
                 Map<String, Object> map = new HashMap<>();
                 map.put("id", u.getId());
@@ -172,6 +163,7 @@ public class UserController {
                 map.put("profileImage", u.getProfileImage());
                 return map;
             }).collect(Collectors.toList());
+
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Search error");
@@ -202,10 +194,12 @@ public class UserController {
                 if (updateData.containsKey("profileImage")) user.setProfileImage((String) updateData.get("profileImage"));
                 if (updateData.containsKey("coverImage")) user.setCoverImage((String) updateData.get("coverImage"));
                 if (updateData.containsKey("university")) user.setUniversity((String) updateData.get("university"));
+
                 if (updateData.containsKey("coverY")) {
                     Object coverYObj = updateData.get("coverY");
                     user.setCoverY(coverYObj != null ? Integer.parseInt(coverYObj.toString()) : 50);
                 }
+
                 userRepository.save(user);
                 return ResponseEntity.ok("Profil başarıyla güncellendi.");
             }).orElse(ResponseEntity.notFound().build());
@@ -261,7 +255,7 @@ public class UserController {
             return userRepository.findById(id).map(user -> {
                 user.setStatus("SUSPENDED");
                 userRepository.save(user);
-                return ResponseEntity.ok("Kullanıcı başarıyla yasaklandı.");
+                return ResponseEntity.ok("Kullanıcı başarıyla yasaklandı/pasife alındı.");
             }).orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
             return ResponseEntity.status(500).body("İşlem sırasında hata oluştu: " + e.getMessage());
@@ -279,7 +273,7 @@ public class UserController {
                 jdbcTemplate.update("DELETE FROM messages WHERE sender_id = ? OR receiver_id = ?", id, id);
 
                 userRepository.deleteById(id);
-                return ResponseEntity.ok("Kullanıcı tüm verileriyle silindi.");
+                return ResponseEntity.ok("Kullanıcı, tüm bildirimleri ve verileriyle birlikte kökten silindi. 💥");
             } else {
                 return ResponseEntity.notFound().build();
             }
@@ -291,9 +285,14 @@ public class UserController {
     @GetMapping("/fix-db")
     public ResponseEntity<?> fixDatabase() {
         try {
+            try {
+                jdbcTemplate.execute("ALTER TABLE users ADD COLUMN document_base64 TEXT;");
+            } catch (Exception ignored) {
+            }
+
             jdbcTemplate.execute("UPDATE users SET status = 'ACTIVE' WHERE status IS NULL");
             jdbcTemplate.execute("UPDATE users SET role = 'USER' WHERE role IS NULL");
-            return ResponseEntity.ok("✅ VERİTABANI ONARILDI!");
+            return ResponseEntity.ok("✅ VERİTABANI ONARILDI, EKSİK KOLON EKLENDİ VE KİLİT AÇILDI!");
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Hata oluştu: " + e.getMessage());
         }
