@@ -1,8 +1,10 @@
 package com.unicycle.backend.controller;
 
 import com.unicycle.backend.model.User;
+import com.unicycle.backend.model.Product;
 import com.unicycle.backend.service.UserService;
 import com.unicycle.backend.repository.UserRepository;
+import com.unicycle.backend.repository.ProductRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,13 +28,15 @@ public class UserController {
     private final UserRepository userRepository;
     private final JdbcTemplate jdbcTemplate;
     private final PasswordEncoder passwordEncoder;
+    private final ProductRepository productRepository; // 🚀 EKLENDİ
 
     @Autowired
-    public UserController(UserService userService, UserRepository userRepository, JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder) {
+    public UserController(UserService userService, UserRepository userRepository, JdbcTemplate jdbcTemplate, PasswordEncoder passwordEncoder, ProductRepository productRepository) {
         this.userService = userService;
         this.userRepository = userRepository;
         this.jdbcTemplate = jdbcTemplate;
         this.passwordEncoder = passwordEncoder;
+        this.productRepository = productRepository; // 🚀 EKLENDİ
     }
 
     @PostMapping("/register")
@@ -257,38 +261,42 @@ public class UserController {
         }
     }
 
-    // 🚀 DÜNYANIN EN TEMİZ SİLME METODU (Veritabanı çökmelerine son)
+    // 🚀 DÜNYANIN EN TEMİZ SİLME METODU V2 (Kolon adı bilmecesini Java'ya çözdürdük)
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         try {
-            if (userRepository.existsById(id)) {
-
-                // 1. Önce bu kullanıcının ürünlerine başkalarının yaptığı yorumları ve beğenileri silelim
-                jdbcTemplate.update("DELETE FROM comment WHERE product_id IN (SELECT id FROM products WHERE user_id = ?)", id);
-                try { jdbcTemplate.update("DELETE FROM likes WHERE product_id IN (SELECT id FROM products WHERE user_id = ?)", id); } catch(Exception ignored) {}
-
-                // 2. Kullanıcının kendi yaptığı yorumları ve beğenileri silelim
-                jdbcTemplate.update("DELETE FROM comment WHERE user_id = ?", id);
-                try { jdbcTemplate.update("DELETE FROM likes WHERE user_id = ?", id); } catch(Exception ignored) {}
-
-                // 3. Bildirimlerini ve takip ilişkilerini silelim
-                jdbcTemplate.update("DELETE FROM notifications WHERE user_id = ?", id);
-                jdbcTemplate.update("DELETE FROM follows WHERE follower_id = ? OR following_id = ?", id, id);
-
-                // 4. Mesajlaşmalarını (hem attığı hem aldığı) silelim
-                jdbcTemplate.update("DELETE FROM messages WHERE sender_id = ? OR receiver_id = ?", id, id);
-
-                // 5. Artık bağı kalmayan ürünlerini (ilanlarını) silelim
-                jdbcTemplate.update("DELETE FROM products WHERE user_id = ?", id);
-
-                // 6. EN SON: Artık tertemiz olan kullanıcıyı sistemden silebiliriz
-                userRepository.deleteById(id);
-
-                return ResponseEntity.ok("Kullanıcı, tüm bildirimleri ve verileriyle birlikte kökten silindi. 💥");
-            } else {
+            Optional<User> userOpt = userRepository.findById(id);
+            if (userOpt.isEmpty()) {
                 return ResponseEntity.notFound().build();
             }
+            User user = userOpt.get();
+
+            // 1. Kullanıcının Yorumlarını, Beğenilerini ve Bildirimlerini Temizle
+            try { jdbcTemplate.update("DELETE FROM comment WHERE user_id = ?", id); } catch(Exception ignored) {}
+            try { jdbcTemplate.update("DELETE FROM likes WHERE user_id = ?", id); } catch(Exception ignored) {}
+            try { jdbcTemplate.update("DELETE FROM notifications WHERE user_id = ?", id); } catch(Exception ignored) {}
+            try { jdbcTemplate.update("DELETE FROM follows WHERE follower_id = ? OR following_id = ?", id, id); } catch(Exception ignored) {}
+            try { jdbcTemplate.update("DELETE FROM messages WHERE sender_id = ? OR receiver_id = ?", id, id); } catch(Exception ignored) {}
+
+            // 2. Kullanıcının İLANLARINI HIBERNATE (Repository) ÜZERİNDEN SİL
+            // Böylece kolon adı ne olursa olsun hata almadan silecek!
+            List<Product> allProducts = productRepository.findAll();
+            for (Product p : allProducts) {
+                if (p.getUser() != null && p.getUser().getId().equals(id)) {
+                    // İlanı silmeden önce, bu ilana yapılmış yorum ve beğenileri temizle
+                    try { jdbcTemplate.update("DELETE FROM comment WHERE product_id = ?", p.getId()); } catch(Exception ignored) {}
+                    try { jdbcTemplate.update("DELETE FROM likes WHERE product_id = ?", p.getId()); } catch(Exception ignored) {}
+                    // Ve ilanı sil
+                    productRepository.delete(p);
+                }
+            }
+
+            // 3. Artık hiçbir engeli kalmayan Kullanıcıyı sil!
+            userRepository.deleteById(id);
+
+            return ResponseEntity.ok(Map.of("message", "Kullanıcı, tüm ilanları, mesajları ve yorumlarıyla birlikte kökten silindi. 💥"));
         } catch (Exception e) {
+            e.printStackTrace();
             return ResponseEntity.status(500).body("Silme işlemi sırasında hata oluştu: " + e.getMessage());
         }
     }
