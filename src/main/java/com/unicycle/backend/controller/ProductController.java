@@ -16,7 +16,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/products")
-// 🚀 VIP BİLETİ: Hem Vercel Hem Bilgisayarın İçin!
 @CrossOrigin(origins = {"https://uni-cycle-seven.vercel.app", "http://localhost:3000"})
 public class ProductController {
 
@@ -42,6 +41,11 @@ public class ProductController {
             }
             User owner = optionalUser.get();
 
+            // 🚀 GÜVENLİK DUVARI: YASAKLI VEYA ONAYSIZ KİŞİ İLAN VEREMEZ! 🚀
+            if (!"ACTIVE".equals(owner.getStatus())) {
+                return ResponseEntity.status(403).body("İlan verebilmek için hesabınızın yöneticiler tarafından onaylanmış ve aktif olması gerekmektedir.");
+            }
+
             Product newProduct = new Product();
             newProduct.setUser(owner);
             newProduct.setTitle(request.getTitle());
@@ -62,7 +66,7 @@ public class ProductController {
         }
     }
 
-    // 2️⃣ GET ALL PRODUCTS (🚀 ÇÖKMEYİ ENGELLEYEN SİSTEM BURADA 🚀)
+    // 2️⃣ GET ALL PRODUCTS
     @GetMapping
     public ResponseEntity<?> getProducts(@RequestParam(value = "university", required = false) String university) {
         try {
@@ -74,7 +78,6 @@ public class ProductController {
                 products = productRepository.findAll();
             }
 
-            // Java'nın (Jackson) kafası karışıp 500 hatası vermesin diye verileri ELLERİMİZLE paketliyoruz!
             List<Map<String, Object>> safeProducts = new ArrayList<>();
             for (Product p : products) {
                 safeProducts.add(mapProductToSafeObject(p));
@@ -93,7 +96,6 @@ public class ProductController {
         try {
             List<Product> results = productRepository.findByTitleContainingIgnoreCaseOrCategoryContainingIgnoreCase(query, query);
 
-            // Arama sonuçlarını da güvenli pakete alıyoruz
             List<Map<String, Object>> safeProducts = new ArrayList<>();
             for (Product p : results) {
                 safeProducts.add(mapProductToSafeObject(p));
@@ -121,8 +123,6 @@ public class ProductController {
         }
     }
 
-    // 🛠 SİHİRLİ PAKETLEYİCİ METOT (GİZLİ KAHRAMAN)
-    // Sadece Frontend'in ihtiyaç duyduğu temiz bilgileri alır, sonsuz döngüleri engeller!
     private Map<String, Object> mapProductToSafeObject(Product p) {
         Map<String, Object> map = new HashMap<>();
         map.put("id", p.getId());
@@ -135,7 +135,6 @@ public class ProductController {
         map.put("photosBase64", p.getPhotosBase64());
         map.put("university", p.getUniversity());
 
-        // Kullanıcının güvenli bilgilerini (şifre vs. olmadan) temiz bir şekilde içine koy
         if (p.getUser() != null) {
             Map<String, Object> userMap = new HashMap<>();
             userMap.put("id", p.getUser().getId());

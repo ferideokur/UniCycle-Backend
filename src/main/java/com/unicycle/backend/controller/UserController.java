@@ -84,7 +84,6 @@ public class UserController {
         }
     }
 
-    // 🚀🚀 MAİLİ VERCEL'İN (FRONTEND) ATMASI İÇİN KODU SADECE ÜRETİP YOLLAYAN METOT 🚀🚀
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestParam("email") String email) {
         try {
@@ -95,17 +94,13 @@ public class UserController {
             }
 
             User user = userOptional.get();
-            // 6 haneli kod üret
             String otp = String.format("%06d", new java.util.Random().nextInt(999999));
 
-            // Kodu veritabanına kaydet
             user.setOtpCode(otp);
             userRepository.save(user);
 
             System.out.println("🔔 KOD OLUŞTURULDU: " + otp);
 
-            // 🚀 RENDER MAİL ATAMADIĞI İÇİN KODU FRONTEND'E (VERCEL'E) YOLLUYORUZ
-            // Maili Vercel (Frontend) gönderecek!
             Map<String, String> responseData = new HashMap<>();
             responseData.put("otp", otp);
             responseData.put("fullName", user.getFullName());
@@ -262,32 +257,31 @@ public class UserController {
         }
     }
 
-    // 🚀 GÜNCELLENMİŞ SİLME METODU (Hata vermemesi için bağları koparır)
+    // 🚀 DÜNYANIN EN TEMİZ SİLME METODU (Veritabanı çökmelerine son)
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         try {
             if (userRepository.existsById(id)) {
-                // 1. Önce bu kullanıcının ürünlerine ait olan tüm etkileşimleri (yorum, beğeni) sil ki ürünler silinebilsin
-                jdbcTemplate.update("DELETE FROM comment WHERE product_id IN (SELECT id FROM products WHERE user_id = ?)", id);
-                try {
-                    jdbcTemplate.update("DELETE FROM likes WHERE product_id IN (SELECT id FROM products WHERE user_id = ?)", id);
-                } catch(Exception ignored) {}
 
-                // 2. Şimdi kullanıcının diğer tablolarla olan tüm bağlarını kopar
-                try {
-                    jdbcTemplate.update("DELETE FROM likes WHERE user_id = ?", id);
-                } catch(Exception ignored) {}
+                // 1. Önce bu kullanıcının ürünlerine başkalarının yaptığı yorumları ve beğenileri silelim
+                jdbcTemplate.update("DELETE FROM comment WHERE product_id IN (SELECT id FROM products WHERE user_id = ?)", id);
+                try { jdbcTemplate.update("DELETE FROM likes WHERE product_id IN (SELECT id FROM products WHERE user_id = ?)", id); } catch(Exception ignored) {}
+
+                // 2. Kullanıcının kendi yaptığı yorumları ve beğenileri silelim
+                jdbcTemplate.update("DELETE FROM comment WHERE user_id = ?", id);
+                try { jdbcTemplate.update("DELETE FROM likes WHERE user_id = ?", id); } catch(Exception ignored) {}
+
+                // 3. Bildirimlerini ve takip ilişkilerini silelim
                 jdbcTemplate.update("DELETE FROM notifications WHERE user_id = ?", id);
                 jdbcTemplate.update("DELETE FROM follows WHERE follower_id = ? OR following_id = ?", id, id);
-                jdbcTemplate.update("DELETE FROM comment WHERE user_id = ?", id);
 
-                // 3. Artık kimsesiz kalan ürünlerini sil
-                jdbcTemplate.update("DELETE FROM products WHERE user_id = ?", id);
-
-                // 4. Mesajlaşmalarını sil
+                // 4. Mesajlaşmalarını (hem attığı hem aldığı) silelim
                 jdbcTemplate.update("DELETE FROM messages WHERE sender_id = ? OR receiver_id = ?", id, id);
 
-                // 5. EN SON: Tüm bağları kopan kullanıcıyı güvenle sil
+                // 5. Artık bağı kalmayan ürünlerini (ilanlarını) silelim
+                jdbcTemplate.update("DELETE FROM products WHERE user_id = ?", id);
+
+                // 6. EN SON: Artık tertemiz olan kullanıcıyı sistemden silebiliriz
                 userRepository.deleteById(id);
 
                 return ResponseEntity.ok("Kullanıcı, tüm bildirimleri ve verileriyle birlikte kökten silindi. 💥");
@@ -302,11 +296,7 @@ public class UserController {
     @GetMapping("/fix-db")
     public ResponseEntity<?> fixDatabase() {
         try {
-            try {
-                jdbcTemplate.execute("ALTER TABLE users ADD COLUMN document_base64 TEXT;");
-            } catch (Exception ignored) {
-            }
-
+            try { jdbcTemplate.execute("ALTER TABLE users ADD COLUMN document_base64 TEXT;"); } catch (Exception ignored) {}
             jdbcTemplate.execute("UPDATE users SET status = 'ACTIVE' WHERE status IS NULL");
             jdbcTemplate.execute("UPDATE users SET role = 'USER' WHERE role IS NULL");
             return ResponseEntity.ok("✅ VERİTABANI ONARILDI, EKSİK KOLON EKLENDİ VE KİLİT AÇILDI!");

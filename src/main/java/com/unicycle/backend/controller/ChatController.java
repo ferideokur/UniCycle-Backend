@@ -45,6 +45,13 @@ public class ChatController {
         User receiver = userRepository.findById(request.receiverId).orElse(null);
 
         if (sender != null && receiver != null) {
+
+            // 🚀 GÜVENLİK DUVARI: SADECE AKTİF KULLANICILAR CANLI MESAJ ATABİLİR 🚀
+            if (!"ACTIVE".equals(sender.getStatus())) {
+                System.out.println("❌ CANLI MESAJ ENGELLENDİ (Pasif/Onaysız Kullanıcı): " + sender.getFullName());
+                return; // Eğer kullanıcı yasaklıysa veya onaysızsa işlemi iptal et, mesaj fırlatma!
+            }
+
             // 1. Mesajı veritabanına gerçekten kaydediyoruz
             Message message = new Message();
             message.setSender(sender);

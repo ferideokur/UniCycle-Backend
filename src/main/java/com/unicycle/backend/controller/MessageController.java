@@ -21,7 +21,7 @@ public class MessageController {
     @Autowired
     private UserRepository userRepository;
 
-    // 1. MESAJ GÖNDERME
+    // 🚀 GÜNCELLENDİ: PASİF KULLANICILAR MESAJ ATAMAZ
     @PostMapping("/send")
     public ResponseEntity<?> sendMessage(@RequestBody Map<String, Object> payload) {
         try {
@@ -31,6 +31,11 @@ public class MessageController {
 
             User sender = userRepository.findById(senderId).orElseThrow();
             User receiver = userRepository.findById(receiverId).orElseThrow();
+
+            // 🚀 GÜVENLİK DUVARI:
+            if (!"ACTIVE".equals(sender.getStatus())) {
+                return ResponseEntity.status(403).body("Mesaj gönderebilmek için hesabınızın yöneticiler tarafından onaylanmış ve aktif olması gerekmektedir.");
+            }
 
             Message msg = new Message();
             msg.setSender(sender);

@@ -33,6 +33,7 @@ public class CommentController {
         return ResponseEntity.ok(commentRepository.findByProductIdOrderByCreatedAtDesc(productId));
     }
 
+    // 🚀 GÜNCELLENDİ: PASİF KULLANICILAR YORUM YAPAMAZ
     @PostMapping
     public ResponseEntity<?> addComment(@RequestBody Map<String, Object> payload) {
         try {
@@ -47,8 +48,15 @@ public class CommentController {
                 return ResponseEntity.badRequest().body("Kullanıcı veya ilan bulunamadı.");
             }
 
+            User user = userOpt.get();
+
+            // 🚀 GÜVENLİK DUVARI:
+            if (!"ACTIVE".equals(user.getStatus())) {
+                return ResponseEntity.status(403).body("Yorum yapabilmek için hesabınızın yöneticiler tarafından onaylanmış ve aktif olması gerekmektedir.");
+            }
+
             Comment comment = new Comment();
-            comment.setUser(userOpt.get());
+            comment.setUser(user);
             comment.setProduct(prodOpt.get());
             comment.setText(text);
 
