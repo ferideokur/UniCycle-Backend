@@ -2,6 +2,7 @@ package com.unicycle.backend.model;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -65,6 +66,10 @@ public class User {
     @Column(name = "is_online")
     private Boolean isOnline = false;
 
+    // 🚀🚀 KÖKTEN SİLME SİHRİ: Kullanıcı silinirse ona ait İLANLARI da anında yok et! 🚀🚀
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Product> products;
+
     public User() {}
 
     @PrePersist
@@ -122,4 +127,7 @@ public class User {
 
     public Boolean getIsOnline() { return isOnline; }
     public void setOnline(Boolean online) { this.isOnline = online; }
+
+    public List<Product> getProducts() { return products; }
+    public void setProducts(List<Product> products) { this.products = products; }
 }
