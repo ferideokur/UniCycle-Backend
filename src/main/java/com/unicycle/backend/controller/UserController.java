@@ -262,17 +262,34 @@ public class UserController {
         }
     }
 
+    // 🚀 GÜNCELLENMİŞ SİLME METODU (Hata vermemesi için bağları koparır)
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         try {
             if (userRepository.existsById(id)) {
+                // 1. Önce bu kullanıcının ürünlerine ait olan tüm etkileşimleri (yorum, beğeni) sil ki ürünler silinebilsin
+                jdbcTemplate.update("DELETE FROM comment WHERE product_id IN (SELECT id FROM products WHERE user_id = ?)", id);
+                try {
+                    jdbcTemplate.update("DELETE FROM likes WHERE product_id IN (SELECT id FROM products WHERE user_id = ?)", id);
+                } catch(Exception ignored) {}
+
+                // 2. Şimdi kullanıcının diğer tablolarla olan tüm bağlarını kopar
+                try {
+                    jdbcTemplate.update("DELETE FROM likes WHERE user_id = ?", id);
+                } catch(Exception ignored) {}
                 jdbcTemplate.update("DELETE FROM notifications WHERE user_id = ?", id);
                 jdbcTemplate.update("DELETE FROM follows WHERE follower_id = ? OR following_id = ?", id, id);
                 jdbcTemplate.update("DELETE FROM comment WHERE user_id = ?", id);
+
+                // 3. Artık kimsesiz kalan ürünlerini sil
                 jdbcTemplate.update("DELETE FROM products WHERE user_id = ?", id);
+
+                // 4. Mesajlaşmalarını sil
                 jdbcTemplate.update("DELETE FROM messages WHERE sender_id = ? OR receiver_id = ?", id, id);
 
+                // 5. EN SON: Tüm bağları kopan kullanıcıyı güvenle sil
                 userRepository.deleteById(id);
+
                 return ResponseEntity.ok("Kullanıcı, tüm bildirimleri ve verileriyle birlikte kökten silindi. 💥");
             } else {
                 return ResponseEntity.notFound().build();
