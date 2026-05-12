@@ -2,11 +2,14 @@ package com.unicycle.backend.model;
 
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
 @Table(name = "users")
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id") // 🚀 NÜKLEER ÇÖZÜM: Sonsuz döngü ihtimalini kökünden yok eder!
 public class User {
 
     @Id
@@ -74,9 +77,6 @@ public class User {
     @JsonIgnore
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Product> products;
-
-    // Loglardan yakaladığımız o gizli katiller (Mesajlar ve Bildirimler)!
-    // Bunlar senin eski kodunda yoktu, sistemi bunlar çökertiyordu.
 
     @JsonIgnore
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)

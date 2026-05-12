@@ -12,6 +12,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
+import java.util.Arrays;
 
 @Configuration
 @EnableWebSecurity
@@ -20,39 +21,37 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                // 🔥 Spring Security'e "CORS Nükleer Silahını" tanıttığımız yer:
                 .cors(Customizer.withDefaults())
-                .csrf(csrf -> csrf.disable()) // POST işlemlerini engellemesini durdur
+                .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // BÜTÜN ÖNCÜ (OPTIONS) İSTEKLERİNE KESİN İZİN VER!
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        // Diğer tüm isteklere şimdilik izin ver
                         .anyRequest().permitAll()
                 );
         return http.build();
     }
 
-    // 🚀 RENDER'I ÇÖKMEKTEN KURTARAN EKSİK PARÇA BURASI!
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
-    // 🔥 İŞTE CANAVARIN FİŞİNİ ÇEKECEK NÜKLEER SİLAH (GLOBAL CORS) 🔥
     @Bean
     public CorsFilter corsFilter() {
         CorsConfiguration config = new CorsConfiguration();
         config.setAllowCredentials(true);
-        config.addAllowedOrigin("http://localhost:3000");
-        config.addAllowedOrigin("https://uni-cycle-seven.vercel.app");
-        // Vercel'in sormak istediği tüm sorulara ve göndereceği tüm başlıklara izin veriyoruz:
+
+        // 🔥 Vercel'in bütün alt alan adlarına ve yerel çalışmaya izin veriyoruz!
+        config.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:3000",
+                "https://uni-cycle-seven.vercel.app",
+                "https://uni-cycle-*.vercel.app" // 🚀 Vercel'in tüm önizleme linklerini kapsar!
+        ));
+
         config.addAllowedHeader("*");
         config.addAllowedMethod("*");
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
-
-        // Bu filtre, Spring Security'den bile ÖNCE çalışır ve Vercel'i anında içeri alır!
         return new CorsFilter(source);
     }
 }
