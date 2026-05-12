@@ -1,6 +1,7 @@
 package com.unicycle.backend.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -29,11 +30,12 @@ public class User {
     @Column(name = "bio", length = 255)
     private String bio;
 
-    // 🖼️ Profil Fotoğrafı (Base64) - PostgreSQL UYUMU İÇİN "TEXT" YAPILDI
+    // 🖼️ Profil Fotoğrafı
     @Column(name = "profile_image", columnDefinition = "TEXT")
     private String profileImage;
 
-    // 🖼️ Kapak Fotoğrafı (Base64) - PostgreSQL UYUMU İÇİN "TEXT" YAPILDI
+    // 🖼️ Kapak Fotoğrafı - SİSTEMİ BOĞMAMASI İÇİN ENGELLENDİ
+    @JsonIgnore
     @Column(name = "cover_image", columnDefinition = "TEXT")
     private String coverImage;
 
@@ -41,15 +43,16 @@ public class User {
     @Column(name = "cover_y")
     private Integer coverY = 50;
 
-    // 👑 ROZET SİSTEMİ: Kullanıcının Rolü (USER veya ADMIN)
+    // 👑 ROZET SİSTEMİ
     @Column(name = "role")
     private String role = "USER";
 
-    // ⏳ ONAY SİSTEMİ: Kullanıcının Durumu (PENDING, ACTIVE, SUSPENDED)
+    // ⏳ ONAY SİSTEMİ
     @Column(name = "status")
     private String status = "PENDING";
 
-    // 🚀 BÜYÜK HATA BURADAYDI: PostgreSQL LONGTEXT kabul etmez, TEXT olmalı!
+    // 🚀 ÖĞRENCİ BELGESİ - SİSTEMİ BOĞMAMASI İÇİN ENGELLENDİ
+    @JsonIgnore
     @Column(name = "document_base64", columnDefinition = "TEXT")
     private String documentBase64;
 
@@ -66,9 +69,26 @@ public class User {
     @Column(name = "is_online")
     private Boolean isOnline = false;
 
-    // 🚀🚀 KÖKTEN SİLME SİHRİ: Kullanıcı silinirse ona ait İLANLARI da anında yok et! 🚀🚀
+    // 🚀🚀 KÖKTEN SİLME VE SONSUZ DÖNGÜ KIRICI SİHİRLER BURADA 🚀🚀
+
+    @JsonIgnore
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Product> products;
+
+    // Loglardan yakaladığımız o gizli katiller (Mesajlar ve Bildirimler)!
+    // Bunlar senin eski kodunda yoktu, sistemi bunlar çökertiyordu.
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Notification> notifications;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "sender", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Message> sentMessages;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "receiver", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Message> receivedMessages;
 
     public User() {}
 
@@ -79,7 +99,7 @@ public class User {
         if (this.status == null) this.status = "PENDING";
     }
 
-    // --- GETTER VE SETTER'LAR ---
+    // --- BÜTÜN GETTER VE SETTER'LAR ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -130,4 +150,13 @@ public class User {
 
     public List<Product> getProducts() { return products; }
     public void setProducts(List<Product> products) { this.products = products; }
+
+    public List<Notification> getNotifications() { return notifications; }
+    public void setNotifications(List<Notification> notifications) { this.notifications = notifications; }
+
+    public List<Message> getSentMessages() { return sentMessages; }
+    public void setSentMessages(List<Message> sentMessages) { this.sentMessages = sentMessages; }
+
+    public List<Message> getReceivedMessages() { return receivedMessages; }
+    public void setReceivedMessages(List<Message> receivedMessages) { this.receivedMessages = receivedMessages; }
 }
