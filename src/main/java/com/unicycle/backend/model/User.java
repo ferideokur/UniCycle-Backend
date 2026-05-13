@@ -55,7 +55,6 @@ public class User {
     private String status = "PENDING";
 
     // 🚀 ÖĞRENCİ BELGESİ - SİSTEMİ BOĞMAMASI İÇİN ENGELLENDİ
-    @JsonIgnore
     @Column(name = "document_base64", columnDefinition = "TEXT")
     private String documentBase64;
 
