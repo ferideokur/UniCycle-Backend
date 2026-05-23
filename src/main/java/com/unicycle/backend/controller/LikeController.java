@@ -6,6 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import com.unicycle.backend.model.Product;
+import com.unicycle.backend.repository.ProductRepository;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import java.util.Map; // 🚀 YENİ: Veriyi hatasız almak için Map kullanıyoruz
 
@@ -16,6 +20,9 @@ public class LikeController {
 
     @Autowired
     private ProductLikeRepository likeRepository;
+
+    @Autowired
+    private ProductRepository productRepository;
 
     // 1. SAYACI ÇALIŞTIR (GET)
     @GetMapping("/count/{productId}")
@@ -52,5 +59,14 @@ public class LikeController {
     public ResponseEntity<String> removeLike(@RequestParam Long userId, @RequestParam Long productId) {
         likeRepository.deleteByUserIdAndProductId(userId, productId);
         return ResponseEntity.ok("Beğeni başarıyla silindi.");
+    }
+    @GetMapping("/user/{userId}")
+    public ResponseEntity<List<Product>> getLikedProductsByUser(@PathVariable Long userId) {
+        List<ProductLike> likes = likeRepository.findByUserId(userId);
+        List<Long> productIds = likes.stream()
+                .map(ProductLike::getProductId)
+                .collect(Collectors.toList());
+        List<Product> products = productRepository.findAllById(productIds);
+        return ResponseEntity.ok(products);
     }
 }

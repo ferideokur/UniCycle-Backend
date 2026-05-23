@@ -3,6 +3,7 @@ package com.unicycle.backend.repository;
 import com.unicycle.backend.model.ProductLike;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.util.List;
 
 @Repository
 public interface ProductLikeRepository extends JpaRepository<ProductLike, Long> {
@@ -15,4 +16,6 @@ public interface ProductLikeRepository extends JpaRepository<ProductLike, Long> 
 
     // 3. Kullanıcı takipten çıkınca o beğeniyi veritabanından siler
     void deleteByUserIdAndProductId(Long userId, Long productId);
+
+    List<ProductLike> findByUserId(Long userId);
 }
