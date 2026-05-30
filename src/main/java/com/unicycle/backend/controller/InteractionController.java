@@ -16,7 +16,8 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/interaction")
-@CrossOrigin(origins = "https://uni-cycle-seven.vercel.app") // Vercel'den gelen isteklere izin veriyoruz!
+// 🚀 GÜNCELLEME: Localhost'u da ekledik ki sen test ederken CORS hatası yeme!
+@CrossOrigin(origins = {"https://uni-cycle-seven.vercel.app", "http://localhost:3000"})
 public class InteractionController {
 
     @Autowired
@@ -28,28 +29,24 @@ public class InteractionController {
     @Autowired
     private UserRepository userRepository;
 
-    // 1. TAKİP ETME İŞLEMİ (Butona basılınca burası çalışacak)
     @PostMapping("/follow")
     @Transactional
     public ResponseEntity<?> toggleFollow(@RequestBody Map<String, Long> payload) {
-        Long followerId = payload.get("followerId"); // Takip eden kişi (Sen)
-        Long followingId = payload.get("followingId"); // Takip edilen kişi (Karşı taraf)
+        Long followerId = payload.get("followerId");
+        Long followingId = payload.get("followingId");
 
         User follower = userRepository.findById(followerId).orElseThrow();
         User following = userRepository.findById(followingId).orElseThrow();
 
-        // Eğer zaten takip ediyorsa, takipten çıkar (Toggle mantığı)
         if (followRepository.existsByFollowerAndFollowing(follower, following)) {
             followRepository.deleteByFollowerAndFollowing(follower, following);
             return ResponseEntity.ok(Map.of("message", "Takipten çıkıldı", "isFollowing", false));
         } else {
-            // Takip etmiyorsa, yeni takip oluştur
             Follow newFollow = new Follow();
             newFollow.setFollower(follower);
             newFollow.setFollowing(following);
             followRepository.save(newFollow);
 
-            // BİLDİRİM FIRLAT! 🔔 (Karşı tarafa gidiyor)
             Notification notification = new Notification();
             notification.setUser(following);
             notification.setMessage(follower.getFullName() + " seni takip etmeye başladı.");
@@ -59,7 +56,6 @@ public class InteractionController {
         }
     }
 
-    // 2. KULLANICININ BİLDİRİMLERİNİ GETİR (Sağ üstteki kalp/zil ikonu için)
     @GetMapping("/notifications/{userId}")
     public ResponseEntity<?> getNotifications(@PathVariable Long userId) {
         User user = userRepository.findById(userId).orElseThrow();
@@ -70,19 +66,16 @@ public class InteractionController {
     @PostMapping("/notifications")
     public ResponseEntity<?> createCustomNotification(@RequestBody Map<String, Object> payload) {
         try {
-            // React'tan gelen verileri alıyoruz
             Long targetUserId = Long.valueOf(payload.get("userId").toString());
             String message = payload.get("message").toString();
 
-            // Bildirimin gideceği kullanıcıyı bul
             User targetUser = userRepository.findById(targetUserId).orElseThrow(() -> new RuntimeException("Kullanıcı bulunamadı"));
 
-            // Yeni bir bildirim yarat ve kaydet
             Notification notification = new Notification();
             notification.setUser(targetUser);
             notification.setMessage(message);
             notification.setRead(false);
-            notification.setCreatedAt(java.time.LocalDateTime.now()); // Sizin tarih objeniz neyse o (Date veya LocalDateTime)
+            notification.setCreatedAt(java.time.LocalDateTime.now());
 
             notificationRepository.save(notification);
 
@@ -91,7 +84,8 @@ public class InteractionController {
             return ResponseEntity.badRequest().body("Bildirim kaydedilemedi: " + e.getMessage());
         }
     }
-    // 3. BİLDİRİM SİLME İŞLEMİ (Tekli veya Tümü)
+
+    // TEKLİ SİLME
     @DeleteMapping("/notifications/{id}")
     public ResponseEntity<?> deleteNotification(@PathVariable Long id) {
         try {
@@ -103,6 +97,20 @@ public class InteractionController {
             }
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Bildirim silinirken hata oluştu: " + e.getMessage());
+        }
+    }
+
+    // 🚀 YENİ: KULLANICININ TÜM BİLDİRİMLERİNİ TEK SEFERDE SİLME!
+    @DeleteMapping("/notifications/user/{userId}")
+    @Transactional
+    public ResponseEntity<?> deleteAllUserNotifications(@PathVariable Long userId) {
+        try {
+            User user = userRepository.findById(userId).orElseThrow();
+            List<Notification> userNotifs = notificationRepository.findByUserOrderByCreatedAtDesc(user);
+            notificationRepository.deleteAll(userNotifs);
+            return ResponseEntity.ok(Map.of("success", true, "message", "Tüm bildirimler başarıyla uçuruldu!"));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Toplu silme hatası: " + e.getMessage());
         }
     }
 }
